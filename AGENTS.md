@@ -43,5 +43,5 @@
 
 - Work on `develop` unless the user requests another branch.
 - Keep commits small and focused on one coherent change.
-- Push completed work when the user has explicitly authorized it.
+- After completing and verifying a coherent unit of work, create a focused commit and push it to `origin/develop` without waiting for a separate user request.
 - Use commit messages in the form `type: 한국어 설명` with types such as `feat`, `fix`, `refactor`, `chore`, `docs`, `style`, and `test`.
