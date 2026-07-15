@@ -28,7 +28,12 @@ interface RequestOptions extends Omit<RequestInit, 'body'> {
 }
 
 function joinUrl(baseUrl: string, endpoint: string) {
-  return `${baseUrl.replace(/\/+$/, '')}/${endpoint.replace(/^\/+/, '')}`;
+  const normalizedBaseUrl = baseUrl.replace(/\/+$/, '');
+  let normalizedEndpoint = endpoint.replace(/^\/+/, '');
+  if (normalizedBaseUrl.endsWith('/api') && (normalizedEndpoint === 'api' || normalizedEndpoint.startsWith('api/'))) {
+    normalizedEndpoint = normalizedEndpoint.slice(3).replace(/^\/+/, '');
+  }
+  return normalizedEndpoint ? `${normalizedBaseUrl}/${normalizedEndpoint}` : normalizedBaseUrl;
 }
 
 async function parseErrorResponse(response: Response): Promise<ApiErrorResponse | undefined> {
@@ -67,9 +72,20 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
   return (await response.json()) as T;
 }
 
+async function requestForm<T>(endpoint: string, formData: FormData): Promise<T> {
+  const response = await fetch(joinUrl(BASE_URL, endpoint), { method: 'POST', body: formData });
+  if (!response.ok) {
+    const errorResponse = await parseErrorResponse(response);
+    throw new ApiError(response.status, errorResponse?.message ?? 'API 요청에 실패했습니다.', errorResponse);
+  }
+  return (await response.json()) as T;
+}
+
 export const apiClient = {
   get: <T>(endpoint: string) => request<T>(endpoint, { method: 'GET' }),
   post: <T>(endpoint: string, body: unknown) => request<T>(endpoint, { method: 'POST', body }),
+  postForm: <T>(endpoint: string, formData: FormData) => requestForm<T>(endpoint, formData),
   put: <T>(endpoint: string, body: unknown) => request<T>(endpoint, { method: 'PUT', body }),
+  patch: <T>(endpoint: string, body: unknown) => request<T>(endpoint, { method: 'PATCH', body }),
   delete: (endpoint: string) => request<void>(endpoint, { method: 'DELETE' }),
 };
