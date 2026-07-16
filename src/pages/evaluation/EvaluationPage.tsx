@@ -41,6 +41,7 @@ const strategyLabels: Record<SelectionStrategy, string> = {
   ALL_COURSES: '지정 교과 전 과목',
   TOP_N_COURSES: '전체 상위 N과목',
   TOP_N_COURSES_PER_SUBJECT: '교과별 상위 N과목',
+  CORE_SCIENCE_TOP_N: '국·영·수·과 교과별 상위과목',
   CORE_PLUS_BEST_CREDIT_OPTIONAL_TOP_N: '국·영·수 + 사회/과학 이수단위 우수 교과',
   TOP_N_SEMESTERS: '우수 N개 학기',
   TOP_N_SUBJECTS: '우수 N개 교과',
@@ -79,6 +80,7 @@ const baseRule: CreateEvaluationRuleRequest = {
   scoreAggregation: 'COURSE_SCORE_AVERAGE',
   achievementConversion: 'DIRECT_TABLE',
   includeThirdYearSecondSemester: false,
+  includeThirdYearSecondSemesterForGraduates: false,
   includeProfessionalCourses: false,
   normalizeGradeWeights: false,
   intermediateScale: 4,
@@ -139,11 +141,29 @@ const presets: Array<{ label: string; values: Partial<CreateEvaluationRuleReques
     },
   },
   {
-    label: '한국공학대 교과별 상위과목',
+    label: '한국공학대 공학계열 교과별 상위과목',
+    values: {
+      selectionStrategy: 'CORE_SCIENCE_TOP_N',
+      selectionCount: 4,
+      achievementSelectionCount: 2,
+      includeThirdYearSecondSemesterForGraduates: true,
+      gradeWeights: [33.3333, 33.3333, 33.3334],
+      subjectWeights: [1, 1, 1, 0, 1, 0],
+      gradeScores: [100, 99, 98, 97, 96, 94, 80, 60, 25],
+      achievementGrades: [1, 2, 4],
+      achievementScores: [100, 99, 97],
+      subjectPriorities: [3, 4, 5, 1, 2, 6],
+      sourceDocument: '(수시)2027학년도 한국공학대 수시 모집요강.pdf',
+      sourcePages: '34-35',
+    },
+  },
+  {
+    label: '한국공학대 경영학부 교과별 상위과목',
     values: {
       selectionStrategy: 'CORE_PLUS_BEST_CREDIT_OPTIONAL_TOP_N',
       selectionCount: 4,
       achievementSelectionCount: 2,
+      includeThirdYearSecondSemesterForGraduates: true,
       gradeWeights: [33.3333, 33.3333, 33.3334],
       gradeScores: [100, 99, 98, 97, 96, 94, 80, 60, 25],
       achievementGrades: [1, 2, 4],
@@ -670,6 +690,8 @@ function RuleDetail({ rule, id }: { rule: EvaluationRule; id: string }) {
           <h4>포함·제외 조건</h4>
           <ul className="rule-condition-list">
             <li className={rule.includeThirdYearSecondSemester ? 'is-included' : 'is-excluded'}>3학년 2학기 {rule.includeThirdYearSecondSemester ? '포함' : '제외'}</li>
+            <li className={rule.includeThirdYearSecondSemesterForGraduates ? 'is-included' : 'is-excluded'}>졸업생 3학년 2학기 {rule.includeThirdYearSecondSemesterForGraduates ? '포함' : '일반 규칙 적용'}
+            </li>
             <li className={rule.includeProfessionalCourses ? 'is-included' : 'is-excluded'}>전문교과 {rule.includeProfessionalCourses ? '포함' : '제외'}</li>
           </ul>
         </section>
@@ -781,7 +803,7 @@ function RuleForm({ universities, pending, initialValues, onSubmit }: {
         <label>최종점수 배율<input type="number" min="0.0001" step="0.0001" value={rule.scoreMultiplier} onChange={(event) => setRule({ ...rule, scoreMultiplier: Number(event.target.value) })} /></label>
       </div>
 
-      <div className="policy-toggles"><label><input type="checkbox" checked={rule.includeThirdYearSecondSemester} onChange={(event) => setRule({ ...rule, includeThirdYearSecondSemester: event.target.checked })} />3학년 2학기 포함</label><label><input type="checkbox" checked={rule.includeProfessionalCourses} onChange={(event) => setRule({ ...rule, includeProfessionalCourses: event.target.checked })} />전문교과 포함</label><label><input type="checkbox" checked={rule.normalizeGradeWeights} onChange={(event) => setRule({ ...rule, normalizeGradeWeights: event.target.checked })} />학년별 평균 후 비율 적용</label></div>
+      <div className="policy-toggles"><label><input type="checkbox" checked={rule.includeThirdYearSecondSemester} onChange={(event) => setRule({ ...rule, includeThirdYearSecondSemester: event.target.checked })} />3학년 2학기 포함</label><label><input type="checkbox" checked={rule.includeThirdYearSecondSemesterForGraduates} onChange={(event) => setRule({ ...rule, includeThirdYearSecondSemesterForGraduates: event.target.checked })} />졸업생만 3학년 2학기 포함</label><label><input type="checkbox" checked={rule.includeProfessionalCourses} onChange={(event) => setRule({ ...rule, includeProfessionalCourses: event.target.checked })} />전문교과 포함</label><label><input type="checkbox" checked={rule.normalizeGradeWeights} onChange={(event) => setRule({ ...rule, normalizeGradeWeights: event.target.checked })} />학년별 평균 후 비율 적용</label></div>
 
       <div className="weight-grid"><div><strong>학년 반영 비율 (%)</strong>{rule.gradeWeights.map((value, index) => <label key={index}>{index + 1}학년<input type="number" min="0" step="0.0001" value={value} onChange={(event) => updateArray('gradeWeights', index, Number(event.target.value))} /></label>)}</div><div><strong>교과 가중치 (0은 제외)</strong>{rule.subjectWeights.map((value, index) => <label key={index}>{subjects[index][1]}<input type="number" min="0" step="0.1" value={value} onChange={(event) => updateArray('subjectWeights', index, Number(event.target.value))} /></label>)}</div></div>
 
@@ -809,7 +831,7 @@ function ResultPanel({ result }: { result: GradeVerification }) {
     <section className="result-panel">
       <div className="score-orb"><span>최종 환산점수</span><strong>{result.finalScore}</strong><small>평균등급 {result.averageGrade}</small></div>
       <div className="result-detail"><p className="section-step">CALCULATION RESULT</p><h2>{result.universityName} · {result.recruitmentUnit}</h2><p>{result.admissionType} / {result.ruleName} v{result.ruleVersion}</p><div className="result-counts"><span>반영 <strong>{result.includedCourseCount}</strong>과목</span><span>제외 <strong>{result.excludedCourseCount}</strong>과목</span></div>{result.sourceDocument && <p className="result-source">근거: {result.sourceDocument} {result.sourcePages && `p.${result.sourcePages}`}</p>}{result.warnings.map((warning) => <p className="warning" key={warning}>⚠ {warning}</p>)}</div>
-      <details><summary>과목별 계산 근거 보기</summary>{result.calculations.map((item, index) => <div className={`calculation-line ${item.included ? '' : 'is-excluded'}`} key={index}><strong>{item.courseName}</strong><span>{item.effectiveGrade}등급 → {item.convertedScore}점</span><span>학년 {item.gradeWeight} × 교과 {item.subjectWeight} × 단위 {item.credits}</span><span>{item.included ? `가중점수 ${item.weightedScore}` : item.exclusionReason}</span></div>)}</details>
+      <details><summary>과목별 계산 근거 보기</summary>{result.calculations.map((item, index) => { const appliedSubject = item.appliedSubjectCategory ?? item.subjectCategory; return <div className={`calculation-line ${item.included ? '' : 'is-excluded'}`} key={index}><strong>{item.courseName}</strong><span>{item.effectiveGrade}등급 → {item.convertedScore}점</span><span>{item.subjectCategory !== appliedSubject && `${item.subjectCategory} → ${appliedSubject} · `}학년 {item.gradeWeight} × 교과 {item.subjectWeight} × 단위 {item.credits}</span><span>{item.included ? `가중점수 ${item.weightedScore}` : item.exclusionReason}</span></div>; })}</details>
     </section>
   );
 }

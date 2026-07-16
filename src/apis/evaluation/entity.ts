@@ -1,5 +1,5 @@
 export type SubjectCategory = 'KOREAN' | 'MATH' | 'ENGLISH' | 'SOCIAL' | 'SCIENCE' | 'OTHER';
-export type SelectionStrategy = 'ALL_COURSES' | 'TOP_N_COURSES' | 'TOP_N_COURSES_PER_SUBJECT' | 'CORE_PLUS_BEST_CREDIT_OPTIONAL_TOP_N' | 'TOP_N_SEMESTERS' | 'TOP_N_SUBJECTS' | 'BEST_SEMESTER_PER_GRADE';
+export type SelectionStrategy = 'ALL_COURSES' | 'TOP_N_COURSES' | 'TOP_N_COURSES_PER_SUBJECT' | 'CORE_SCIENCE_TOP_N' | 'CORE_PLUS_BEST_CREDIT_OPTIONAL_TOP_N' | 'TOP_N_SEMESTERS' | 'TOP_N_SUBJECTS' | 'BEST_SEMESTER_PER_GRADE';
 export type ScoreAggregation = 'COURSE_SCORE_AVERAGE' | 'AVERAGE_GRADE_THEN_SCORE';
 export type AchievementConversion = 'DIRECT_TABLE' | 'Z_SCORE' | 'EXCLUDE';
 export type AchievementLevel = 'A' | 'B' | 'C' | 'D' | 'E';
@@ -25,6 +25,7 @@ export interface EvaluationRule {
   scoreAggregation: ScoreAggregation;
   achievementConversion: AchievementConversion;
   includeThirdYearSecondSemester: boolean;
+  includeThirdYearSecondSemesterForGraduates: boolean;
   includeProfessionalCourses: boolean;
   normalizeGradeWeights: boolean;
   intermediateScale: number;
@@ -151,6 +152,7 @@ export interface GradeVerification {
   includedCourseCount: number;
   excludedCourseCount: number;
   calculations: Array<CourseGrade & {
+    appliedSubjectCategory: SubjectCategory | null;
     convertedScore: number | null;
     effectiveGrade: number | null;
     gradeWeight: number;
