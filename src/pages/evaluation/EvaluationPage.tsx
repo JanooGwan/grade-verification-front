@@ -223,22 +223,12 @@ function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : '요청을 처리하지 못했습니다.';
 }
 
-export default function EvaluationPage({ initialTranscript }: { initialTranscript: StudentTranscript | null }) {
+export function RuleManagementPage() {
   const queryClient = useQueryClient();
-  const rulesQuery = useQuery(evaluationQueries.rules());
   const universitiesQuery = useQuery(universityQueries.list());
-  const [ruleId, setRuleId] = useState(0);
-  const importedCourses = initialTranscript?.courses.map(toCourseGrade) ?? [];
-  const [courses, setCourses] = useState<CourseGrade[]>(
-    importedCourses.length > 0 ? importedCourses : [emptyCourse(), emptyCourse(), emptyCourse()],
-  );
-  const [result, setResult] = useState<GradeVerification | null>(null);
   const [showRuleForm, setShowRuleForm] = useState(false);
   const [rulePrefill, setRulePrefill] = useState<Partial<CreateEvaluationRuleRequest>>({});
   const [sourceExtractionId, setSourceExtractionId] = useState<number | null>(null);
-  const [error, setError] = useState('');
-  const selectedRule = rulesQuery.data?.find((rule) => rule.id === ruleId);
-  const verifyMutation = useMutation({ mutationFn: () => verifyGrades(ruleId, courses) });
   const ruleMutation = useMutation({
     mutationFn: ({ request, extractionId }: { request: CreateEvaluationRuleRequest; extractionId: number | null }) =>
       extractionId === null
@@ -251,6 +241,66 @@ export default function EvaluationPage({ initialTranscript }: { initialTranscrip
       setSourceExtractionId(null);
     },
   });
+
+  const openManualRuleForm = () => {
+    setShowRuleForm((value) => !value);
+    setRulePrefill({});
+    setSourceExtractionId(null);
+  };
+
+  return (
+    <main className="evaluation-page rules-page">
+      <header className="evaluation-header">
+        <div>
+          <p className="eyebrow">Rule workspace</p>
+          <h1>규칙 관리</h1>
+          <p className="page-description">모집요강 PDF에서 규칙 초안을 추출하고 근거를 검수한 뒤 게시 상태를 관리합니다.</p>
+        </div>
+        <button className="outline-button" type="button" aria-expanded={showRuleForm} onClick={openManualRuleForm}>
+          {showRuleForm ? '규칙 등록 닫기' : '+ 반영 규칙 등록'}
+        </button>
+      </header>
+
+      {showRuleForm && (
+        <RuleForm
+          key={sourceExtractionId ?? 'manual'}
+          universities={universitiesQuery.data ?? []}
+          pending={ruleMutation.isPending}
+          initialValues={rulePrefill}
+          onSubmit={(request) => ruleMutation.mutate({ request, extractionId: sourceExtractionId })}
+        />
+      )}
+
+      {(universitiesQuery.isError || ruleMutation.isError) && (
+        <div className="error-banner" role="alert">
+          {errorMessage(ruleMutation.error ?? universitiesQuery.error)}
+        </div>
+      )}
+
+      <RuleLifecyclePanel
+        universities={universitiesQuery.data ?? []}
+        onApplyExtraction={(extractionId, values) => {
+          setSourceExtractionId(extractionId);
+          setRulePrefill(values);
+          setShowRuleForm(true);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+      />
+    </main>
+  );
+}
+
+export default function EvaluationPage({ initialTranscript }: { initialTranscript: StudentTranscript | null }) {
+  const rulesQuery = useQuery(evaluationQueries.rules());
+  const [ruleId, setRuleId] = useState(0);
+  const importedCourses = initialTranscript?.courses.map(toCourseGrade) ?? [];
+  const [courses, setCourses] = useState<CourseGrade[]>(
+    importedCourses.length > 0 ? importedCourses : [emptyCourse(), emptyCourse(), emptyCourse()],
+  );
+  const [result, setResult] = useState<GradeVerification | null>(null);
+  const [error, setError] = useState('');
+  const selectedRule = rulesQuery.data?.find((rule) => rule.id === ruleId);
+  const verifyMutation = useMutation({ mutationFn: () => verifyGrades(ruleId, courses) });
 
   const updateCourse = (index: number, patch: Partial<CourseGrade>) => {
     setCourses((current) => current.map((course, courseIndex) => courseIndex === index ? { ...course, ...patch } : course));
@@ -279,13 +329,6 @@ export default function EvaluationPage({ initialTranscript }: { initialTranscrip
           <h1>성적 검증</h1>
           <p className="page-description">대학별 모집요강의 과목 선택, 환산표, 반올림 기준까지 적용해 계산 근거를 검증합니다.</p>
         </div>
-        <button className="outline-button" type="button" onClick={() => {
-          setShowRuleForm((value) => !value);
-          setRulePrefill({});
-          setSourceExtractionId(null);
-        }}>
-          + 반영 규칙 등록
-        </button>
       </header>
 
       {initialTranscript && (
@@ -295,28 +338,8 @@ export default function EvaluationPage({ initialTranscript }: { initialTranscrip
         </div>
       )}
 
-      {showRuleForm && (
-        <RuleForm
-          key={sourceExtractionId ?? 'manual'}
-          universities={universitiesQuery.data ?? []}
-          pending={ruleMutation.isPending}
-          initialValues={rulePrefill}
-          onSubmit={(request) => ruleMutation.mutate({ request, extractionId: sourceExtractionId })}
-        />
-      )}
-
-      <RuleLifecyclePanel
-        universities={universitiesQuery.data ?? []}
-        onApplyExtraction={(extractionId, values) => {
-          setSourceExtractionId(extractionId);
-          setRulePrefill(values);
-          setShowRuleForm(true);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
-      />
-
-      {(error || rulesQuery.isError || ruleMutation.isError) && (
-        <div className="error-banner" role="alert">{error || errorMessage(ruleMutation.error ?? rulesQuery.error)}</div>
+      {(error || rulesQuery.isError) && (
+        <div className="error-banner" role="alert">{error || errorMessage(rulesQuery.error)}</div>
       )}
 
       <form onSubmit={handleVerify}>
