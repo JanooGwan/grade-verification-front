@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { ApiError } from '@/apis/client';
@@ -27,6 +27,8 @@ import type {
 import { evaluationQueries, evaluationQueryKeys } from '@/apis/evaluation/queries';
 import { universityQueries } from '@/apis/university/queries';
 import { toCourseGrade, type StudentTranscript } from '@/apis/transcript/entity';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import StatusPanel from '@/components/StatusPanel';
 
 const subjects: Array<[SubjectCategory, string]> = [
   ['KOREAN', '국어'],
@@ -345,13 +347,16 @@ export default function EvaluationPage({ initialTranscript }: { initialTranscrip
       <form onSubmit={handleVerify}>
         <section className="evaluation-card rule-picker">
           <div><p className="section-step">STEP 1</p><h2>적용할 모집요강 규칙</h2></div>
-          <select aria-label="성적 반영 규칙" value={ruleId} onChange={(event) => setRuleId(Number(event.target.value))} required>
-            <option value={0}>규칙을 선택하세요</option>
+          <select aria-label="성적 반영 규칙" value={ruleId} onChange={(event) => setRuleId(Number(event.target.value))} disabled={rulesQuery.isLoading} required>
+            <option value={0}>{rulesQuery.isLoading ? '규칙을 불러오는 중…' : '규칙을 선택하세요'}</option>
             {rulesQuery.data?.map((rule) => (
               <option key={rule.id} value={rule.id}>{rule.universityName} · {rule.admissionYear} · {rule.admissionType} · {rule.recruitmentUnit} (v{rule.version})</option>
             ))}
           </select>
           {selectedRule && <RuleSummary rule={selectedRule} />}
+          {!rulesQuery.isLoading && rulesQuery.data?.length === 0 && (
+            <div className="rule-summary"><small>게시된 규칙이 없습니다. 규칙 관리에서 검수와 게시를 먼저 완료해 주세요.</small></div>
+          )}
         </section>
 
         <section className="evaluation-card">
@@ -411,9 +416,12 @@ function RuleLifecyclePanel({ universities, onApplyExtraction }: {
   const [pdfUniversityId, setPdfUniversityId] = useState(0);
   const [pdfAdmissionYear, setPdfAdmissionYear] = useState(2027);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState('');
+  const [previewPage, setPreviewPage] = useState(1);
   const [extraction, setExtraction] = useState<RuleExtraction | null>(null);
   const [compareIds, setCompareIds] = useState<[number, number]>([0, 0]);
   const [expandedRuleId, setExpandedRuleId] = useState<number | null>(null);
+  const [rulePendingRetirement, setRulePendingRetirement] = useState<EvaluationRule | null>(null);
   const adminRulesQuery = useQuery(evaluationQueries.adminRules(status || undefined));
   const extractionsQuery = useQuery(evaluationQueries.extractions());
   const refreshRules = () => queryClient.invalidateQueries({ queryKey: evaluationQueryKeys.all });
@@ -424,7 +432,10 @@ function RuleLifecyclePanel({ universities, onApplyExtraction }: {
       if (action === 'publish') return publishEvaluationRule(ruleId, request);
       return retireEvaluationRule(ruleId, request);
     },
-    onSuccess: refreshRules,
+    onSuccess: async () => {
+      setRulePendingRetirement(null);
+      await refreshRules();
+    },
   });
   const bulkMutation = useMutation({
     mutationFn: createDraftEvaluationRules,
@@ -443,6 +454,19 @@ function RuleLifecyclePanel({ universities, onApplyExtraction }: {
   const comparisonMutation = useMutation({
     mutationFn: () => compareRuleExtractions(compareIds[0], compareIds[1]),
   });
+
+  useEffect(() => {
+    return () => {
+      if (pdfPreviewUrl) URL.revokeObjectURL(pdfPreviewUrl);
+    };
+  }, [pdfPreviewUrl]);
+
+  const selectPdfFile = (file: File | null) => {
+    setPdfFile(file);
+    setPdfPreviewUrl(file ? URL.createObjectURL(file) : '');
+    setPreviewPage(1);
+    setExtraction(null);
+  };
 
   const extractPdf = (event: FormEvent) => {
     event.preventDefault();
@@ -489,13 +513,17 @@ function RuleLifecyclePanel({ universities, onApplyExtraction }: {
     onApplyExtraction(extraction.extractionId, values);
   };
 
-  const runAction = (ruleId: number, action: RuleAction) => {
+  const runAction = (rule: EvaluationRule, action: RuleAction) => {
     setPanelError('');
     if (!actor.trim()) {
       setPanelError('검수자 또는 작업자 이름을 입력해 주세요.');
       return;
     }
-    actionMutation.mutate({ ruleId, action });
+    if (action === 'retire') {
+      setRulePendingRetirement(rule);
+      return;
+    }
+    actionMutation.mutate({ ruleId: rule.id, action });
   };
 
   const importJson = () => {
@@ -552,45 +580,76 @@ function RuleLifecyclePanel({ universities, onApplyExtraction }: {
           <input type="number" min="2000" max="2100" value={pdfAdmissionYear} onChange={(event) => setPdfAdmissionYear(Number(event.target.value))} />
         </label>
         <label>모집요강 PDF
-          <input type="file" accept="application/pdf,.pdf" onChange={(event) => setPdfFile(event.target.files?.[0] ?? null)} />
+          <input type="file" accept="application/pdf,.pdf" onChange={(event) => selectPdfFile(event.target.files?.[0] ?? null)} />
         </label>
         <button type="submit" disabled={extractionMutation.isPending}>
           {extractionMutation.isPending ? '전체 페이지 분석 중…' : '규칙 후보 추출'}
         </button>
       </form>
 
-      {extraction && (
-        <div className="extraction-result">
-          <div className="extraction-result-heading">
-            <div>
-              <span className={`confidence-chip ${extraction.overallConfidence < 0.75 ? 'is-low' : ''}`}>
-                추출 신뢰도 {Math.round(extraction.overallConfidence * 100)}%
-              </span>
-              <strong>{extraction.originalFileName}</strong>
-              <small>{extraction.pageCount}페이지 중 텍스트 확인 {extraction.textPageCount}페이지</small>
+      <div className="document-review-workspace">
+        <section className="pdf-preview-panel">
+          <div className="document-panel-heading">
+            <div><p className="section-step">SOURCE DOCUMENT</p><h3>모집요강 원문</h3></div>
+            {pdfPreviewUrl && <span>p.{previewPage}</span>}
+          </div>
+          {pdfPreviewUrl ? (
+            <object
+              className="pdf-preview-object"
+              data={`${pdfPreviewUrl}#page=${previewPage}&view=FitH`}
+              type="application/pdf"
+              aria-label={`${pdfFile?.name ?? '모집요강'} PDF 원문`}
+            >
+              <a href={pdfPreviewUrl} target="_blank" rel="noreferrer">PDF를 새 창에서 열기</a>
+            </object>
+          ) : (
+            <StatusPanel tone="empty" title="PDF를 먼저 선택해 주세요" description="선택한 모집요강이 이 영역에 표시됩니다." />
+          )}
+        </section>
+
+        <section className="extraction-review-panel">
+          <div className="document-panel-heading">
+            <div><p className="section-step">EXTRACTED RULE</p><h3>추출 결과</h3></div>
+          </div>
+          {extractionMutation.isPending ? (
+            <StatusPanel tone="loading" title="모집요강을 분석하고 있습니다" description="페이지 수에 따라 잠시 시간이 걸릴 수 있습니다." />
+          ) : extraction ? (
+            <div className="extraction-result">
+              <div className="extraction-result-heading">
+                <div>
+                  <span className={`confidence-chip ${extraction.overallConfidence < 0.75 ? 'is-low' : ''}`}>
+                    추출 신뢰도 {Math.round(extraction.overallConfidence * 100)}%
+                  </span>
+                  <strong>{extraction.originalFileName}</strong>
+                  <small>{extraction.pageCount}페이지 중 텍스트 확인 {extraction.textPageCount}페이지</small>
+                </div>
+                <button type="button" onClick={applyExtraction}>검토 폼으로 가져오기</button>
+              </div>
+              <div className="candidate-grid">
+                <span><small>선택 방식</small>{extraction.candidate.selectionStrategy ? strategyLabels[extraction.candidate.selectionStrategy] : '미확정'}</span>
+                <span><small>학년 비율</small>{extraction.candidate.gradeWeights.length ? extraction.candidate.gradeWeights.join(' / ') : '미확정'}</span>
+                <span><small>환산표</small>{extraction.candidate.gradeScores.length === 9 ? '1~9등급 확인' : '미확정'}</span>
+                <span><small>근거 페이지</small>{extraction.candidate.sourcePages || '미확정'}</span>
+              </div>
+              {extraction.missingFields.length > 0 && <p className="extraction-warning"><strong>직접 확인 필요:</strong> {extraction.missingFields.join(', ')}</p>}
+              {extraction.warnings.map((warning) => <p className="extraction-warning" key={warning}>⚠ {warning}</p>)}
+              <details className="evidence-list" open>
+                <summary>필드별 원문 근거 {extraction.evidence.length}건</summary>
+                {extraction.evidence.map((item, index) => (
+                  <article key={`${item.fieldKey}-${item.pageNumber}-${index}`}>
+                    <strong>{item.fieldKey}</strong>
+                    <button className="evidence-page-button" type="button" onClick={() => setPreviewPage(item.pageNumber)}>p.{item.pageNumber} 원문 보기</button>
+                    <span>신뢰도 {Math.round(item.confidence * 100)}%</span>
+                    <p>{item.excerpt}</p>
+                  </article>
+                ))}
+              </details>
             </div>
-            <button type="button" onClick={applyExtraction}>검토 폼으로 가져오기</button>
-          </div>
-          <div className="candidate-grid">
-            <span><small>선택 방식</small>{extraction.candidate.selectionStrategy ? strategyLabels[extraction.candidate.selectionStrategy] : '미확정'}</span>
-            <span><small>학년 비율</small>{extraction.candidate.gradeWeights.length ? extraction.candidate.gradeWeights.join(' / ') : '미확정'}</span>
-            <span><small>환산표</small>{extraction.candidate.gradeScores.length === 9 ? '1~9등급 확인' : '미확정'}</span>
-            <span><small>근거 페이지</small>{extraction.candidate.sourcePages || '미확정'}</span>
-          </div>
-          {extraction.missingFields.length > 0 && <p className="extraction-warning"><strong>직접 확인 필요:</strong> {extraction.missingFields.join(', ')}</p>}
-          {extraction.warnings.map((warning) => <p className="extraction-warning" key={warning}>⚠ {warning}</p>)}
-          <details className="evidence-list">
-            <summary>필드별 원문 근거 {extraction.evidence.length}건 보기</summary>
-            {extraction.evidence.map((item, index) => (
-              <article key={`${item.fieldKey}-${item.pageNumber}-${index}`}>
-                <strong>{item.fieldKey} · p.{item.pageNumber}</strong>
-                <span>신뢰도 {Math.round(item.confidence * 100)}%</span>
-                <p>{item.excerpt}</p>
-              </article>
-            ))}
-          </details>
-        </div>
-      )}
+          ) : (
+            <StatusPanel tone="empty" title="아직 추출된 규칙이 없습니다" description="대학과 PDF를 선택한 뒤 규칙 후보 추출을 실행해 주세요." />
+          )}
+        </section>
+      </div>
 
       <details className="extraction-history">
         <summary>모집요강 문서·추출 이력 {extractionsQuery.data?.length ?? 0}건</summary>
@@ -610,6 +669,9 @@ function RuleLifecyclePanel({ universities, onApplyExtraction }: {
       {(panelError || requestError) && <div className="error-banner" role="alert">{panelError || errorMessage(requestError)}</div>}
 
       <div className="rule-admin-list">
+        {adminRulesQuery.isLoading && (
+          <StatusPanel compact tone="loading" title="규칙 목록을 불러오는 중입니다" />
+        )}
         {adminRulesQuery.data?.map((rule) => {
           const expanded = expandedRuleId === rule.id;
           return (
@@ -629,16 +691,18 @@ function RuleLifecyclePanel({ universities, onApplyExtraction }: {
                   <small>근거: {rule.sourceDocument || '미등록'} {rule.sourcePages && `p.${rule.sourcePages}`}</small>
                 </button>
                 <div className="rule-admin-actions">
-                  {rule.status === 'DRAFT' && <button type="button" onClick={() => runAction(rule.id, 'review')}>검수 완료</button>}
-                  {rule.status === 'VERIFIED' && <button type="button" onClick={() => runAction(rule.id, 'publish')}>게시</button>}
-                  {rule.status !== 'RETIRED' && <button className="danger-action" type="button" onClick={() => runAction(rule.id, 'retire')}>폐기</button>}
+                  {rule.status === 'DRAFT' && <button type="button" onClick={() => runAction(rule, 'review')}>검수 완료</button>}
+                  {rule.status === 'VERIFIED' && <button type="button" onClick={() => runAction(rule, 'publish')}>게시</button>}
+                  {rule.status !== 'RETIRED' && <button className="danger-action" type="button" onClick={() => runAction(rule, 'retire')}>폐기</button>}
                 </div>
               </div>
               {expanded && <RuleDetail rule={rule} id={`rule-detail-${rule.id}`} />}
             </article>
           );
         })}
-        {!adminRulesQuery.isLoading && adminRulesQuery.data?.length === 0 && <p className="empty-state">해당 상태의 규칙이 없습니다.</p>}
+        {!adminRulesQuery.isLoading && adminRulesQuery.data?.length === 0 && (
+          <StatusPanel compact tone="empty" title="해당 상태의 규칙이 없습니다" description="상태 필터를 변경하거나 새 규칙을 등록해 주세요." />
+        )}
       </div>
 
       <details className="bulk-rule-import">
@@ -647,6 +711,19 @@ function RuleLifecyclePanel({ universities, onApplyExtraction }: {
         <textarea value={bulkJson} onChange={(event) => setBulkJson(event.target.value)} placeholder='[{ "universityId": 1, "name": "2027 규칙", ... }]' />
         <button type="button" disabled={bulkMutation.isPending || !bulkJson.trim()} onClick={importJson}>JSON 초안 등록</button>
       </details>
+
+      <ConfirmDialog
+        open={rulePendingRetirement !== null}
+        title="규칙을 폐기할까요?"
+        description={rulePendingRetirement ? `${rulePendingRetirement.universityName} · ${rulePendingRetirement.name} v${rulePendingRetirement.version} 규칙은 게시 대상으로 다시 사용할 수 없습니다.` : ''}
+        confirmLabel="규칙 폐기"
+        pending={actionMutation.isPending}
+        danger
+        onCancel={() => setRulePendingRetirement(null)}
+        onConfirm={() => {
+          if (rulePendingRetirement) actionMutation.mutate({ ruleId: rulePendingRetirement.id, action: 'retire' });
+        }}
+      />
     </section>
   );
 }

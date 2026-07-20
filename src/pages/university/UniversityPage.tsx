@@ -7,6 +7,7 @@ import { universityQueries } from '@/apis/university/queries';
 import UniversityCard from '@/pages/university/components/UniversityCard';
 import UniversityForm from '@/pages/university/components/UniversityForm';
 import { useUniversityMutations } from '@/pages/university/hooks/useUniversityMutations';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 function getErrorMessage(error: unknown) {
   if (error instanceof ApiError) {
@@ -20,6 +21,7 @@ function getErrorMessage(error: unknown) {
 
 export default function UniversityPage() {
   const [editingUniversity, setEditingUniversity] = useState<University | null>(null);
+  const [universityPendingDelete, setUniversityPendingDelete] = useState<University | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const universitiesQuery = useQuery(universityQueries.list());
   const { createMutation, deleteMutation, updateMutation } = useUniversityMutations();
@@ -44,13 +46,10 @@ export default function UniversityPage() {
   };
 
   const handleDelete = async (universityId: number) => {
-    if (!window.confirm('이 대학교를 삭제하시겠습니까?')) {
-      return;
-    }
-
     setActionError(null);
     try {
       await deleteMutation.mutateAsync(universityId);
+      setUniversityPendingDelete(null);
       if (editingUniversity?.id === universityId) {
         setEditingUniversity(null);
       }
@@ -137,7 +136,7 @@ export default function UniversityPage() {
                   key={university.id}
                   university={university}
                   isDeleting={deleteMutation.isPending && deleteMutation.variables === university.id}
-                  onDelete={handleDelete}
+                  onDelete={() => setUniversityPendingDelete(university)}
                   onEdit={setEditingUniversity}
                 />
               ))}
@@ -145,6 +144,19 @@ export default function UniversityPage() {
           )}
         </div>
       </section>
+
+      <ConfirmDialog
+        open={universityPendingDelete !== null}
+        title="대학교를 삭제할까요?"
+        description={universityPendingDelete ? `${universityPendingDelete.name}와 연결된 규칙 또는 지원 정보가 있으면 삭제할 수 없습니다.` : ''}
+        confirmLabel="대학교 삭제"
+        pending={deleteMutation.isPending}
+        danger
+        onCancel={() => setUniversityPendingDelete(null)}
+        onConfirm={() => {
+          if (universityPendingDelete) void handleDelete(universityPendingDelete.id);
+        }}
+      />
     </main>
   );
 }

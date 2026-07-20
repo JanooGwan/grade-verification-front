@@ -15,6 +15,7 @@ import { ApiError } from '@/apis/client';
 import type { GradeVerification, SubjectCategory } from '@/apis/evaluation/entity';
 import type { StudentTranscript } from '@/apis/transcript/entity';
 import { universityQueries } from '@/apis/university/queries';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 const subjectLabels: Record<SubjectCategory, string> = {
   KOREAN: '국어',
@@ -36,6 +37,7 @@ export default function StudentApplicationPanel({ transcript }: { transcript: St
   const [trackId, setTrackId] = useState(0);
   const [unitId, setUnitId] = useState(0);
   const [verification, setVerification] = useState<GradeVerification | null>(null);
+  const [applicationPendingDelete, setApplicationPendingDelete] = useState<number | null>(null);
   const universitiesQuery = useQuery(universityQueries.list());
   const tracksQuery = useQuery({
     ...admissionQueries.tracks(universityId, transcript.admissionYear),
@@ -61,6 +63,7 @@ export default function StudentApplicationPanel({ transcript }: { transcript: St
       deleteStudentApplication(transcript.studentId, applicationId),
     onSuccess: async () => {
       setVerification(null);
+      setApplicationPendingDelete(null);
       await queryClient.invalidateQueries({
         queryKey: admissionQueryKeys.applications(transcript.studentId),
       });
@@ -85,9 +88,7 @@ export default function StudentApplicationPanel({ transcript }: { transcript: St
   };
 
   const removeApplication = (applicationId: number) => {
-    if (window.confirm('이 학생의 지원 정보를 삭제할까요?')) {
-      deleteMutation.mutate(applicationId);
-    }
+    setApplicationPendingDelete(applicationId);
   };
 
   const requestError = createMutation.error ?? deleteMutation.error ?? verifyMutation.error ?? historyDetailMutation.error
@@ -168,6 +169,18 @@ export default function StudentApplicationPanel({ transcript }: { transcript: St
         <div>{historyQuery.data.map((run) => <button type="button" key={run.verificationRunId} onClick={() => historyDetailMutation.mutate(run.verificationRunId)}><span>{run.universityName} · {run.recruitmentUnit}</span><b>{run.finalScore}점</b><small>v{run.ruleVersion} · {new Date(run.createdAt).toLocaleString()}</small></button>)}</div>
       </details>}
       {verification && <VerificationDetail result={verification} />}
+      <ConfirmDialog
+        open={applicationPendingDelete !== null}
+        title="지원 정보를 삭제할까요?"
+        description="이 학생의 대학·전형·모집단위 연결이 삭제됩니다. 학생부 성적은 유지됩니다."
+        confirmLabel="지원 정보 삭제"
+        pending={deleteMutation.isPending}
+        danger
+        onCancel={() => setApplicationPendingDelete(null)}
+        onConfirm={() => {
+          if (applicationPendingDelete !== null) deleteMutation.mutate(applicationPendingDelete);
+        }}
+      />
     </section>
   );
 }
