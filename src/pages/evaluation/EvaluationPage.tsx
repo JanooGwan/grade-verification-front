@@ -86,6 +86,7 @@ const baseRule: CreateEvaluationRuleRequest = {
   includeThirdYearSecondSemester: false,
   includeThirdYearSecondSemesterForGraduates: false,
   includeProfessionalCourses: false,
+  applyGradeWeights: true,
   normalizeGradeWeights: false,
   intermediateScale: 4,
   intermediateRounding: 'HALF_UP',
@@ -516,6 +517,7 @@ function RuleLifecyclePanel({ universities, onApplyExtraction }: {
     if (candidate.selectionStrategy) values.selectionStrategy = candidate.selectionStrategy;
     if (candidate.selectionCount !== null) values.selectionCount = candidate.selectionCount;
     if (candidate.gradeWeights.length === 3) values.gradeWeights = candidate.gradeWeights;
+    if (candidate.applyGradeWeights !== null) values.applyGradeWeights = candidate.applyGradeWeights;
     if (candidate.gradeScores.length === 9) values.gradeScores = candidate.gradeScores;
     if (candidate.achievementScores.length === 3) values.achievementScores = candidate.achievementScores;
     if (candidate.includeThirdYearSecondSemester !== null) {
@@ -642,7 +644,7 @@ function RuleLifecyclePanel({ universities, onApplyExtraction }: {
               </div>
               <div className="candidate-grid">
                 <span><small>선택 방식</small>{extraction.candidate.selectionStrategy ? strategyLabels[extraction.candidate.selectionStrategy] : '미확정'}</span>
-                <span><small>학년 비율</small>{extraction.candidate.gradeWeights.length ? extraction.candidate.gradeWeights.join(' / ') : '미확정'}</span>
+                <span><small>학년 비율</small>{extraction.candidate.applyGradeWeights === false ? '가중치 없음' : extraction.candidate.gradeWeights.length ? extraction.candidate.gradeWeights.join(' / ') : '미확정'}</span>
                 <span><small>환산표</small>{extraction.candidate.gradeScores.length === 9 ? '1~9등급 확인' : '미확정'}</span>
                 <span><small>근거 페이지</small>{extraction.candidate.sourcePages || '미확정'}</span>
               </div>
@@ -780,10 +782,12 @@ function RuleDetail({ rule, id }: { rule: EvaluationRule; id: string }) {
       <div className="rule-detail-grid">
         <section>
           <h4>학년별 반영 비율</h4>
-          <div className="rule-value-list">
-            {rule.gradeWeights.map((weight, index) => <span key={index}><small>{index + 1}학년</small><strong>{weight}%</strong></span>)}
-          </div>
-          <p>{rule.normalizeGradeWeights ? '학년별 평균을 먼저 계산한 뒤 비율을 적용합니다.' : '각 과목에 학년 비율을 직접 적용합니다.'}</p>
+          {rule.applyGradeWeights ? <>
+            <div className="rule-value-list">
+              {rule.gradeWeights.map((weight, index) => <span key={index}><small>{index + 1}학년</small><strong>{weight}%</strong></span>)}
+            </div>
+            <p>{rule.normalizeGradeWeights ? '학년별 평균을 먼저 계산한 뒤 비율을 적용합니다.' : '각 과목에 학년 비율을 직접 적용합니다.'}</p>
+          </> : <div className="rule-no-weight"><strong>학년별 가중치 없음</strong><p>반영 대상 과목을 학년 구분 없이 이수단위로 가중 평균합니다.</p></div>}
         </section>
 
         <section>
@@ -920,9 +924,9 @@ function RuleForm({ universities, pending, initialValues, onSubmit }: {
         <label>최종점수 배율<input type="number" min="0.0001" step="0.0001" value={rule.scoreMultiplier} onChange={(event) => setRule({ ...rule, scoreMultiplier: Number(event.target.value) })} /></label>
       </div>
 
-      <div className="policy-toggles"><label><input type="checkbox" checked={rule.includeThirdYearSecondSemester} onChange={(event) => setRule({ ...rule, includeThirdYearSecondSemester: event.target.checked })} />3학년 2학기 포함</label><label><input type="checkbox" checked={rule.includeThirdYearSecondSemesterForGraduates} onChange={(event) => setRule({ ...rule, includeThirdYearSecondSemesterForGraduates: event.target.checked })} />졸업생만 3학년 2학기 포함</label><label><input type="checkbox" checked={rule.includeProfessionalCourses} onChange={(event) => setRule({ ...rule, includeProfessionalCourses: event.target.checked })} />전문교과 포함</label><label><input type="checkbox" checked={rule.normalizeGradeWeights} onChange={(event) => setRule({ ...rule, normalizeGradeWeights: event.target.checked })} />학년별 평균 후 비율 적용</label></div>
+      <div className="policy-toggles"><label><input type="checkbox" checked={rule.includeThirdYearSecondSemester} onChange={(event) => setRule({ ...rule, includeThirdYearSecondSemester: event.target.checked })} />3학년 2학기 포함</label><label><input type="checkbox" checked={rule.includeThirdYearSecondSemesterForGraduates} onChange={(event) => setRule({ ...rule, includeThirdYearSecondSemesterForGraduates: event.target.checked })} />졸업생만 3학년 2학기 포함</label><label><input type="checkbox" checked={rule.includeProfessionalCourses} onChange={(event) => setRule({ ...rule, includeProfessionalCourses: event.target.checked })} />전문교과 포함</label><label><input type="checkbox" checked={rule.applyGradeWeights} onChange={(event) => setRule({ ...rule, applyGradeWeights: event.target.checked, normalizeGradeWeights: event.target.checked ? rule.normalizeGradeWeights : false })} />학년별 가중치 적용</label><label><input type="checkbox" disabled={!rule.applyGradeWeights} checked={rule.normalizeGradeWeights} onChange={(event) => setRule({ ...rule, normalizeGradeWeights: event.target.checked })} />학년별 평균 후 비율 적용</label></div>
 
-      <div className="weight-grid"><div><strong>학년 반영 비율 (%)</strong>{rule.gradeWeights.map((value, index) => <label key={index}>{index + 1}학년<input type="number" min="0" step="0.0001" value={value} onChange={(event) => updateArray('gradeWeights', index, Number(event.target.value))} /></label>)}</div><div><strong>교과 가중치 (0은 제외)</strong>{rule.subjectWeights.map((value, index) => <label key={index}>{subjects[index][1]}<input type="number" min="0" step="0.1" value={value} onChange={(event) => updateArray('subjectWeights', index, Number(event.target.value))} /></label>)}</div></div>
+      <div className="weight-grid"><div><strong>{rule.applyGradeWeights ? '학년 반영 비율 (%)' : '학년 반영 비율 (미적용)'}</strong>{rule.gradeWeights.map((value, index) => <label key={index}>{index + 1}학년<input type="number" min="0" step="0.0001" disabled={!rule.applyGradeWeights} value={value} onChange={(event) => updateArray('gradeWeights', index, Number(event.target.value))} /></label>)}</div><div><strong>교과 가중치 (0은 제외)</strong>{rule.subjectWeights.map((value, index) => <label key={index}>{subjects[index][1]}<input type="number" min="0" step="0.1" value={value} onChange={(event) => updateArray('subjectWeights', index, Number(event.target.value))} /></label>)}</div></div>
 
       <div className="score-grid"><strong>석차등급 환산점수</strong>{rule.gradeScores.map((value, index) => <label key={index}>{index + 1}등급<input type="number" min="0" step="0.0001" value={value} onChange={(event) => updateArray('gradeScores', index, Number(event.target.value))} /></label>)}</div>
       <div className="achievement-grid"><strong>성취도 환산</strong>{['A', 'B', 'C'].map((level, index) => <div key={level}><span>{level}</span><label>환산등급<input type="number" min="1" max="9" step="0.01" value={rule.achievementGrades[index]} onChange={(event) => updateArray('achievementGrades', index, Number(event.target.value))} /></label><label>환산점수<input type="number" min="0" step="0.0001" value={rule.achievementScores[index]} onChange={(event) => updateArray('achievementScores', index, Number(event.target.value))} /></label></div>)}</div>

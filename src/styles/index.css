@@ -197,6 +197,8 @@ select:focus-visible {
 .rule-value-list span, .rule-score-table span { display: flex; min-width: 0; flex: 1; align-items: center; flex-direction: column; gap: 3px; padding: 8px 5px; border-radius: 8px; background: #edf5ef; }
 .rule-value-list small, .rule-score-table small { color: #738078; font-size: .63rem; }
 .rule-value-list strong, .rule-score-table strong { color: #285b3e; font-size: .8rem; }
+.rule-no-weight { padding: 11px; border-radius: 10px; color: #24583b; background: #e8f2eb; }
+.rule-no-weight p { margin: 5px 0 0; }
 .rule-chip-list { display: flex; flex-wrap: wrap; gap: 6px; }
 .rule-chip-list span { padding: 6px 8px; border-radius: 8px; color: #345a43; background: #e9f1eb; font-size: .7rem; }
 .rule-chip-list b { font-weight: 800; }

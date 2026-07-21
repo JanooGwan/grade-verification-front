@@ -28,6 +28,7 @@ export interface EvaluationRule {
   includeThirdYearSecondSemester: boolean;
   includeThirdYearSecondSemesterForGraduates: boolean;
   includeProfessionalCourses: boolean;
+  applyGradeWeights: boolean;
   normalizeGradeWeights: boolean;
   intermediateScale: number;
   intermediateRounding: RoundingMode;
@@ -75,6 +76,7 @@ export interface RuleExtraction {
     selectionStrategy: SelectionStrategy | null;
     selectionCount: number | null;
     gradeWeights: number[];
+    applyGradeWeights: boolean | null;
     gradeScores: number[];
     achievementScores: number[];
     subjectCategories: SubjectCategory[];
