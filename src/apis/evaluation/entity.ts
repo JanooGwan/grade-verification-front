@@ -22,6 +22,7 @@ export interface EvaluationRule {
   selectionStrategy: SelectionStrategy;
   selectionCount: number;
   achievementSelectionCount: number;
+  minimumCourseCount: number;
   scoreAggregation: ScoreAggregation;
   achievementConversion: AchievementConversion;
   includeThirdYearSecondSemester: boolean;

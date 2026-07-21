@@ -79,6 +79,7 @@ const baseRule: CreateEvaluationRuleRequest = {
   selectionStrategy: 'ALL_COURSES',
   selectionCount: 0,
   achievementSelectionCount: 0,
+  minimumCourseCount: 0,
   scoreAggregation: 'COURSE_SCORE_AVERAGE',
   achievementConversion: 'DIRECT_TABLE',
   includeThirdYearSecondSemester: false,
@@ -176,14 +177,27 @@ const presets: Array<{ label: string; values: Partial<CreateEvaluationRuleReques
     },
   },
   {
-    label: '한신대 상위 12과목',
+    label: '한신대 교과100% 상위 12과목',
     values: {
       selectionStrategy: 'TOP_N_COURSES',
       selectionCount: 12,
+      minimumCourseCount: 12,
+      achievementSelectionCount: 0,
+      achievementConversion: 'EXCLUDE',
+      includeThirdYearSecondSemester: false,
+      includeThirdYearSecondSemesterForGraduates: true,
+      includeProfessionalCourses: false,
       gradeWeights: [33.3333, 33.3333, 33.3334],
+      subjectWeights: [1, 1, 1, 1, 1, 0],
       gradeScores: [100, 99, 98, 97, 96, 95, 94, 80, 50],
+      scoreMultiplier: 10,
+      intermediateScale: 3,
+      intermediateRounding: 'HALF_UP',
+      finalScale: 2,
+      finalRounding: 'HALF_UP',
       sourceDocument: '(수시)2027학년도 한신대 수시 모집요강.pdf',
       sourcePages: '36-38',
+      interpretationNote: '국어·수학·영어·사회·과학(한국사 포함) 중 석차등급 우수 12과목. 동석차등급은 이수단위가 큰 과목 우선. 진로선택과목 제외. 졸업예정자는 3학년 1학기까지, 졸업자는 전 학년 반영.',
     },
   },
   {
@@ -784,6 +798,7 @@ function RuleDetail({ rule, id }: { rule: EvaluationRule; id: string }) {
           <h4>과목 선택</h4>
           <strong>{strategyLabels[rule.selectionStrategy]}</strong>
           <p>{rule.selectionCount > 0 ? `일반 과목 ${rule.selectionCount}개` : '조건에 맞는 전 과목'}{rule.achievementSelectionCount > 0 ? ` + 진로선택 ${rule.achievementSelectionCount}개` : ''}</p>
+          {rule.minimumCourseCount > 0 && <p>지원자격 최소 {rule.minimumCourseCount}과목</p>}
         </section>
 
         <section>
@@ -898,6 +913,7 @@ function RuleForm({ universities, pending, initialValues, onSubmit }: {
         <label>선택 방식<select value={rule.selectionStrategy} onChange={(event) => setRule({ ...rule, selectionStrategy: event.target.value as SelectionStrategy })}>{Object.entries(strategyLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
         <label>반영 개수<input type="number" min="0" disabled={rule.selectionStrategy === 'ALL_COURSES' || rule.selectionStrategy === 'BEST_SEMESTER_PER_GRADE'} value={rule.selectionCount} onChange={(event) => setRule({ ...rule, selectionCount: Number(event.target.value) })} /></label>
         <label>진로선택 추가 개수<input type="number" min="0" value={rule.achievementSelectionCount} onChange={(event) => setRule({ ...rule, achievementSelectionCount: Number(event.target.value) })} /></label>
+        <label>지원자격 최소 과목<input type="number" min="0" value={rule.minimumCourseCount} onChange={(event) => setRule({ ...rule, minimumCourseCount: Number(event.target.value) })} /></label>
         <label>점수 집계<select value={rule.scoreAggregation} onChange={(event) => setRule({ ...rule, scoreAggregation: event.target.value as CreateEvaluationRuleRequest['scoreAggregation'] })}><option value="COURSE_SCORE_AVERAGE">과목별 환산 후 평균</option><option value="AVERAGE_GRADE_THEN_SCORE">평균등급 산출 후 환산</option></select></label>
         <label>성취도 환산<select value={rule.achievementConversion} onChange={(event) => setRule({ ...rule, achievementConversion: event.target.value as CreateEvaluationRuleRequest['achievementConversion'] })}><option value="DIRECT_TABLE">A/B/C 직접 환산표</option><option value="Z_SCORE">원점수·평균·표준편차 Z점수</option><option value="EXCLUDE">성취도 과목 제외</option></select></label>
         <label>최종점수 배율<input type="number" min="0.0001" step="0.0001" value={rule.scoreMultiplier} onChange={(event) => setRule({ ...rule, scoreMultiplier: Number(event.target.value) })} /></label>
