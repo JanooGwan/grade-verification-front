@@ -60,6 +60,50 @@ export interface ApplicationVerification {
   verification: GradeVerification;
 }
 
+export type EducationBackground = 'DOMESTIC_HIGH_SCHOOL' | 'GED' | 'FOREIGN_HIGH_SCHOOL';
+export type ApplicationScoreStatus = 'COMPLETE' | 'QUALITATIVE_PENDING' | 'INELIGIBLE';
+
+export interface CalculateApplicationScoreRequest {
+  educationBackground: EducationBackground;
+  gedAverageScore: number | null;
+  unexcusedAbsenceDays: number | null;
+  unexcusedTardyCount: number | null;
+  unexcusedEarlyLeaveCount: number | null;
+  unexcusedClassAbsenceCount: number | null;
+  schoolViolenceAction: number;
+  essayScore: number | null;
+  practicalScore: number | null;
+}
+
+export interface ApplicationScore {
+  scoreRunId: number;
+  createdAt: string;
+  applicationId: number;
+  ruleId: number;
+  ruleVersion: number;
+  universityName: string;
+  admissionYear: number;
+  admissionTrackName: string;
+  recruitmentUnitName: string;
+  educationBackground: EducationBackground;
+  status: ApplicationScoreStatus;
+  academicBaseScore: number;
+  academicScore: number;
+  equivalentAbsenceDays: number | null;
+  attendanceScore: number | null;
+  additionalScore: number | null;
+  schoolViolenceDeduction: number;
+  quantitativeSubtotal: number;
+  scoreAfterDeduction: number;
+  finalScore: number | null;
+  maximumQuantitativeScore: number;
+  maximumTotalScore: number;
+  pendingComponents: string[];
+  ineligibilityReasons: string[];
+  warnings: string[];
+  gradeVerification: GradeVerification | null;
+}
+
 export interface VerificationHistory {
   verificationRunId: number;
   applicationId: number | null;

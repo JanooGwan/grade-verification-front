@@ -145,6 +145,7 @@ export interface GradeVerification {
   admissionType: string;
   recruitmentUnit: string;
   finalScore: number;
+  baseScore: number;
   averageGrade: number;
   selectionStrategy: SelectionStrategy;
   scoreAggregation: ScoreAggregation;

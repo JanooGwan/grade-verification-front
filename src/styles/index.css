@@ -808,6 +808,26 @@ h2 {
 .rule-match-badge--loading { color: #5d6a62; background: #e9eeea; }
 .application-actions { display: flex; flex: 0 0 auto; gap: 6px; }
 .application-actions .application-delete { color: #8c4036; background: #f8e4df; }
+.application-score-form { width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 10px; background: #f4f8f5; }
+.application-score-form summary { cursor: pointer; color: #285f40; font-size: .69rem; font-weight: 850; }
+.application-score-fields { display: grid; grid-template-columns: max-content minmax(110px, 1fr) max-content minmax(110px, 1fr); gap: 7px 9px; align-items: center; margin: 10px 0; }
+.application-score-fields label { color: #59675e; font-size: .65rem; font-weight: 750; }
+.application-score-fields input, .application-score-fields select { width: 100%; min-width: 0; min-height: 34px; padding: 0 8px; border: 1px solid #c5d4c9; border-radius: 8px; background: white; }
+.application-score-form > button { min-height: 36px; padding: 0 11px; border: 0; border-radius: 8px; color: white; background: #285f40; font-size: .68rem; font-weight: 800; }
+.application-score-form > p { margin: 8px 0 0; color: #7b642e; font-size: .64rem; line-height: 1.45; }
+.application-score-result { margin-top: 16px; overflow: hidden; border: 1px solid #739a80; border-radius: 16px; background: white; }
+.application-score-result > header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px; color: white; background: #214d34; }
+.application-score-result--qualitative_pending > header { background: #725d27; }
+.application-score-result--ineligible > header { background: #7b3f39; }
+.application-score-result > header h3, .application-score-result > header p { margin: 0; color: white; }
+.application-score-result > header p, .application-score-result > header small { color: #d2e2d7; font-size: .68rem; }
+.application-score-result > header > div:last-child { display: grid; justify-items: end; }
+.application-score-result > header strong { font-size: 2rem; line-height: 1.1; }
+.application-score-result > header span { font-size: .68rem; font-weight: 800; }
+.application-score-components { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 14px; }
+.application-score-components span { display: grid; gap: 4px; padding: 10px; border-radius: 10px; background: #edf4ef; }
+.application-score-components small { color: #6b786f; font-size: .62rem; }
+.application-score-components b { color: #244b33; font-size: .86rem; }
 .student-verification-result { margin-top: 16px; overflow: hidden; border: 1px solid #739a80; border-radius: 16px; background: white; }
 .verification-result-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px; color: white; background: #173f2a; }
 .verification-result-heading h3 { margin: 0 0 5px; color: white; }
@@ -881,6 +901,9 @@ h2 {
   .application-form { grid-template-columns: 1fr; }
   .application-actions { justify-content: flex-end; }
   .verification-score { justify-items: start; }
+  .application-score-fields, .application-score-components { grid-template-columns: 1fr; }
+  .application-score-result > header { align-items: flex-start; flex-direction: column; }
+  .application-score-result > header > div:last-child { justify-items: start; }
   .transcript-import-form, .student-profile-form, .course-editor-form, .ops-metric-grid, .ops-panels { grid-template-columns: 1fr; }
   .verification-history > div { grid-template-columns: 1fr; }
   .extraction-compare-controls { grid-template-columns: 1fr; }
