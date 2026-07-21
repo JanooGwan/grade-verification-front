@@ -12,6 +12,7 @@ const blankCourse = (): UpsertTranscriptCourseRequest => ({ schoolYear: 1, semes
 const attendanceRows = (transcript: StudentTranscript): StudentAttendance[] => [1, 2, 3].map((schoolYear) => transcript.attendance.find((item) => item.schoolYear === schoolYear) ?? ({ schoolYear, unexcusedAbsenceDays: 0, unexcusedTardyCount: 0, unexcusedEarlyLeaveCount: 0, unexcusedClassAbsenceCount: 0 }));
 const commonData = (transcript: StudentTranscript): UpdateStudentCommonDataRequest => ({
   educationBackground: transcript.educationBackground,
+  highSchoolType: transcript.highSchoolType,
   graduationStatus: transcript.graduationStatus,
   gedAverageScore: transcript.gedAverageScore,
   attendance: attendanceRows(transcript),
@@ -63,7 +64,8 @@ export default function StudentDataEditor({ transcript, onDeleted }: { transcrip
     <form className="student-common-data-form" onSubmit={(event) => { event.preventDefault(); commonMutation.mutate(); }}>
       <div className="course-editor-heading"><strong>대학 공통 평가 데이터</strong><small>모든 대학 전형 계산에서 공통으로 사용됩니다.</small></div>
       <div className="student-common-profile">
-        <label>학력 유형<select value={common.educationBackground} onChange={(event) => setCommon({ ...common, educationBackground: event.target.value as UpdateStudentCommonDataRequest['educationBackground'], gedAverageScore: event.target.value === 'GED' ? common.gedAverageScore : null })}><option value="DOMESTIC_HIGH_SCHOOL">국내 고등학교</option><option value="GED">검정고시</option><option value="FOREIGN_HIGH_SCHOOL">외국 고등학교</option></select></label>
+        <label>학력 유형<select value={common.educationBackground} onChange={(event) => setCommon({ ...common, educationBackground: event.target.value as UpdateStudentCommonDataRequest['educationBackground'], highSchoolType: event.target.value === 'DOMESTIC_HIGH_SCHOOL' ? common.highSchoolType : 'GENERAL', gedAverageScore: event.target.value === 'GED' ? common.gedAverageScore : null })}><option value="DOMESTIC_HIGH_SCHOOL">국내 고등학교</option><option value="GED">검정고시</option><option value="FOREIGN_HIGH_SCHOOL">외국 고등학교</option></select></label>
+        {common.educationBackground === 'DOMESTIC_HIGH_SCHOOL' && <label>고교 유형<select value={common.highSchoolType} onChange={(event) => setCommon({ ...common, highSchoolType: event.target.value as UpdateStudentCommonDataRequest['highSchoolType'] })}><option value="GENERAL">일반고</option><option value="SPECIALIZED">특성화고</option><option value="COMPREHENSIVE_VOCATIONAL">종합고 전문계열</option><option value="LIFELONG_EDUCATION_FACILITY">학력인정 평생교육시설</option></select></label>}
         <label>졸업 상태<select value={common.graduationStatus} onChange={(event) => setCommon({ ...common, graduationStatus: event.target.value as UpdateStudentCommonDataRequest['graduationStatus'] })}><option value="EXPECTED_GRADUATE">고교 졸업예정자</option><option value="GRADUATE">고교 졸업자</option></select></label>
         {common.educationBackground === 'GED' && <label>검정고시 전 과목 평균<input required type="number" min="0" max="100" step="0.01" value={common.gedAverageScore ?? ''} onChange={(event) => setCommon({ ...common, gedAverageScore: event.target.value ? Number(event.target.value) : null })} /></label>}
       </div>

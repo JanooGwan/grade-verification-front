@@ -802,8 +802,9 @@ function RuleDetail({ rule, id }: { rule: EvaluationRule; id: string }) {
         <section>
           <h4>과목 선택</h4>
           <strong>{strategyLabels[rule.selectionStrategy]}</strong>
-          <p>{rule.selectionCount > 0 ? `일반 과목 ${rule.selectionCount}개` : '조건에 맞는 전 과목'}{rule.achievementSelectionCount > 0 ? ` + 진로선택 ${rule.achievementSelectionCount}개` : ''}</p>
-          {rule.minimumCourseCount > 0 && <p>지원자격 최소 {rule.minimumCourseCount}과목</p>}
+          <p>{rule.selectionCount > 0 ? `일반 과목 ${rule.selectionCount}개` : '조건에 맞는 전 과목'}{rule.achievementConversion !== 'EXCLUDE' && rule.achievementSelectionCount > 0 ? ` + 진로선택 ${rule.achievementSelectionCount}개` : ''}</p>
+          {rule.minimumCourseCount > 0 && <p>반영 가능 과목 최소 {rule.minimumCourseCount}개·미만 시 지원자격 미달</p>}
+          {rule.selectionStrategy === 'TOP_N_COURSES' && <p>동일 석차등급은 이수단위가 높은 과목 우선</p>}
         </section>
 
         <section>
@@ -836,8 +837,8 @@ function RuleDetail({ rule, id }: { rule: EvaluationRule; id: string }) {
         </section>
         <section>
           <h4>소수점 처리</h4>
-          <p>중간값: 소수 {rule.intermediateScale}자리에서 {roundingLabels[rule.intermediateRounding]}</p>
-          <p>최종값: 소수 {rule.finalScale}자리에서 {roundingLabels[rule.finalRounding]}</p>
+          <p>중간값: 소수 {rule.intermediateScale + 1}째 자리에서 {roundingLabels[rule.intermediateRounding]}하여 {rule.intermediateScale}째 자리까지</p>
+          <p>최종값: 소수 {rule.finalScale + 1}째 자리에서 {roundingLabels[rule.finalRounding]}하여 {rule.finalScale}째 자리까지</p>
         </section>
         <section className="rule-source-detail">
           <h4>근거 및 검수 정보</h4>

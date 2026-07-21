@@ -54,8 +54,8 @@ export default function CalculationTrace({ summary, aggregation }: {
         <span><small>최종 처리 전</small><b>{display(summary.scoreBeforeFinalRounding)}</b></span>
       </div>
       <footer>
-        <span>중간값: 소수 {summary.intermediateScale}자리 {roundingLabels[summary.intermediateRounding]}</span>
-        <span>최종값: 소수 {summary.finalScale}자리 {roundingLabels[summary.finalRounding]}</span>
+        <span>중간값: 소수 {summary.intermediateScale + 1}째 자리에서 {roundingLabels[summary.intermediateRounding]}하여 {summary.intermediateScale}째 자리까지</span>
+        <span>최종값: 소수 {summary.finalScale + 1}째 자리에서 {roundingLabels[summary.finalRounding]}하여 {summary.finalScale}째 자리까지</span>
         {yearDenominators.map(([year, denominator]) => (
           <span key={year}>{year}학년 정규화 분모 {display(denominator)}</span>
         ))}

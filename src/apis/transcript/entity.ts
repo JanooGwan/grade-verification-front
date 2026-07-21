@@ -2,6 +2,7 @@ import type { AchievementLevel, CourseGrade, SubjectCategory } from '@/apis/eval
 
 export type EducationBackground = 'DOMESTIC_HIGH_SCHOOL' | 'GED' | 'FOREIGN_HIGH_SCHOOL';
 export type GraduationStatus = 'EXPECTED_GRADUATE' | 'GRADUATE';
+export type HighSchoolType = 'GENERAL' | 'SPECIALIZED' | 'COMPREHENSIVE_VOCATIONAL' | 'LIFELONG_EDUCATION_FACILITY';
 
 export interface StudentAttendance {
   schoolYear: number;
@@ -29,6 +30,7 @@ export interface StudentSummary {
   highSchoolName: string | null;
   graduationYear: number | null;
   educationBackground: EducationBackground;
+  highSchoolType: HighSchoolType;
   graduationStatus: GraduationStatus;
   courseCount: number;
   averageGrade: number | null;
@@ -70,6 +72,7 @@ export interface StudentTranscript {
   highSchoolName: string | null;
   graduationYear: number | null;
   educationBackground: EducationBackground;
+  highSchoolType: HighSchoolType;
   graduationStatus: GraduationStatus;
   gedAverageScore: number | null;
   attendance: StudentAttendance[];
@@ -136,6 +139,7 @@ export interface UpdateStudentRequest {
 
 export interface UpdateStudentCommonDataRequest {
   educationBackground: EducationBackground;
+  highSchoolType: HighSchoolType;
   graduationStatus: GraduationStatus;
   gedAverageScore: number | null;
   attendance: StudentAttendance[];
