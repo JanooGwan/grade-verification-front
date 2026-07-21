@@ -153,6 +153,7 @@ export interface GradeVerification {
   sourcePages: string | null;
   includedCourseCount: number;
   excludedCourseCount: number;
+  calculationSummary: CalculationSummary | null;
   calculations: Array<CourseGrade & {
     appliedSubjectCategory: SubjectCategory | null;
     convertedScore: number | null;
@@ -165,4 +166,23 @@ export interface GradeVerification {
     exclusionReason: string | null;
   }>;
   warnings: string[];
+}
+
+export interface CalculationSummary {
+  formula: string;
+  gradeTimesCreditsSum: number;
+  convertedScoreTimesCreditsSum: number;
+  gradeTimesWeightSum: number;
+  convertedScoreTimesWeightSum: number;
+  totalAppliedWeight: number;
+  totalIncludedCredits: number;
+  averageGrade: number;
+  baseScore: number;
+  scoreMultiplier: number;
+  scoreBeforeFinalRounding: number;
+  intermediateScale: number;
+  intermediateRounding: RoundingMode;
+  finalScale: number;
+  finalRounding: RoundingMode;
+  yearWeightDenominators: Record<string, number>;
 }

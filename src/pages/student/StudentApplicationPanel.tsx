@@ -19,6 +19,7 @@ import type { GradeVerification, SubjectCategory } from '@/apis/evaluation/entit
 import type { StudentTranscript } from '@/apis/transcript/entity';
 import { universityQueries } from '@/apis/university/queries';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import CalculationTrace from '@/components/CalculationTrace';
 
 const subjectLabels: Record<SubjectCategory, string> = {
   KOREAN: '국어',
@@ -341,6 +342,7 @@ function VerificationDetail({ result }: { result: GradeVerification }) {
         <span><b>{result.excludedCourseCount}</b>개 제외</span>
         <span>근거: {result.sourceDocument || '미등록'} {result.sourcePages && `p.${result.sourcePages}`}</span>
       </div>
+      <CalculationTrace summary={result.calculationSummary} aggregation={result.scoreAggregation} />
       {result.warnings.map((warning) => <p className="verification-warning" key={warning}>⚠ {warning}</p>)}
       <div className="calculation-heading">
         <strong>과목별 계산 근거</strong>

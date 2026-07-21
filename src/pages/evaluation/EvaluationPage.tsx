@@ -28,6 +28,7 @@ import { evaluationQueries, evaluationQueryKeys } from '@/apis/evaluation/querie
 import { universityQueries } from '@/apis/university/queries';
 import { toCourseGrade, type StudentTranscript } from '@/apis/transcript/entity';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import CalculationTrace from '@/components/CalculationTrace';
 import StatusPanel from '@/components/StatusPanel';
 
 const subjects: Array<[SubjectCategory, string]> = [
@@ -947,6 +948,7 @@ function ResultPanel({ result }: { result: GradeVerification }) {
     <section className="result-panel">
       <div className="score-orb"><span>최종 환산점수</span><strong>{result.finalScore}</strong><small>평균등급 {result.averageGrade}</small></div>
       <div className="result-detail"><p className="section-step">CALCULATION RESULT</p><h2>{result.universityName} · {result.recruitmentUnit}</h2><p>{result.admissionType} / {result.ruleName} v{result.ruleVersion}</p><div className="result-counts"><span>반영 <strong>{result.includedCourseCount}</strong>과목</span><span>제외 <strong>{result.excludedCourseCount}</strong>과목</span></div>{result.sourceDocument && <p className="result-source">근거: {result.sourceDocument} {result.sourcePages && `p.${result.sourcePages}`}</p>}{result.warnings.map((warning) => <p className="warning" key={warning}>⚠ {warning}</p>)}</div>
+      <CalculationTrace summary={result.calculationSummary} aggregation={result.scoreAggregation} />
       <details><summary>과목별 계산 근거 보기</summary>{result.calculations.map((item, index) => { const appliedSubject = item.appliedSubjectCategory ?? item.subjectCategory; return <div className={`calculation-line ${item.included ? '' : 'is-excluded'}`} key={index}><strong>{item.courseName}</strong><span>{item.effectiveGrade}등급 → {item.convertedScore}점</span><span>{item.subjectCategory !== appliedSubject && `${item.subjectCategory} → ${appliedSubject} · `}학년 {item.gradeWeight} × 교과 {item.subjectWeight} × 단위 {item.credits}</span><span>{item.included ? `가중점수 ${item.weightedScore}` : item.exclusionReason}</span></div>; })}</details>
     </section>
   );

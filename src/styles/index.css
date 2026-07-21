@@ -227,6 +227,25 @@ select:focus-visible {
 .result-panel summary { cursor: pointer; font-weight: 700; }
 .calculation-line { display: grid; grid-template-columns: 1fr repeat(3, 1.2fr); gap: 12px; margin-top: 10px; padding: 12px; border-radius: 10px; background: rgb(255 255 255 / 7%); font-size: .78rem; }
 .calculation-line.is-excluded { opacity: .58; }
+.calculation-trace { margin: 14px 16px; padding: 16px; border: 1px solid #d7e3da; border-radius: 14px; color: #2f4536; background: #f7faf8; }
+.calculation-trace header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.calculation-trace header > div { display: grid; gap: 3px; }
+.calculation-trace header small { color: #718078; font-size: .65rem; }
+.calculation-trace code { max-width: 58%; padding: 6px 8px; border-radius: 7px; color: #315d41; background: #e6f0e9; font-family: inherit; font-size: .68rem; line-height: 1.45; white-space: normal; }
+.calculation-trace-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; margin-top: 12px; }
+.calculation-trace-grid span, .calculation-equation span { display: grid; gap: 4px; padding: 9px; border-radius: 9px; background: white; }
+.calculation-trace-grid small, .calculation-equation small { color: #728078; font-size: .6rem; }
+.calculation-trace-grid b, .calculation-equation b { font-size: .82rem; }
+.calculation-equation { display: flex; align-items: stretch; gap: 5px; margin-top: 8px; }
+.calculation-equation span { min-width: 0; flex: 1; }
+.calculation-equation i { display: grid; place-items: center; color: #6e7d74; font-size: .82rem; font-style: normal; font-weight: 800; }
+.calculation-trace footer { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+.calculation-trace footer span { padding: 4px 7px; border-radius: 6px; color: #617168; background: #eaf1ec; font-size: .6rem; }
+.result-panel > .calculation-trace { grid-column: 1 / -1; margin: 0; border-color: rgb(255 255 255 / 15%); color: #f6fff8; background: rgb(255 255 255 / 6%); }
+.result-panel .calculation-trace header small { color: #bcd1c2; }
+.result-panel .calculation-trace code, .result-panel .calculation-trace footer span { color: #d9efe0; background: rgb(255 255 255 / 10%); }
+.result-panel .calculation-trace-grid span, .result-panel .calculation-equation span { background: rgb(255 255 255 / 8%); }
+.result-panel .calculation-trace-grid small, .result-panel .calculation-equation small, .result-panel .calculation-equation i { color: #bcd1c2; }
 
 @media (max-width: 840px) {
   .evaluation-header { align-items: stretch; flex-direction: column; }
@@ -256,6 +275,10 @@ select:focus-visible {
   .result-panel { grid-template-columns: 1fr; }
   .result-panel details { grid-column: auto; }
   .calculation-line { grid-template-columns: 1fr 1fr; }
+  .calculation-trace header { flex-direction: column; }
+  .calculation-trace code { max-width: none; }
+  .calculation-trace-grid { grid-template-columns: 1fr 1fr; }
+  .calculation-equation { display: grid; grid-template-columns: 1fr auto 1fr; }
 }
 
 @media (max-width: 920px) {
