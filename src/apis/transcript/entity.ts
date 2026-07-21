@@ -1,5 +1,25 @@
 import type { AchievementLevel, CourseGrade, SubjectCategory } from '@/apis/evaluation/entity';
 
+export type EducationBackground = 'DOMESTIC_HIGH_SCHOOL' | 'GED' | 'FOREIGN_HIGH_SCHOOL';
+export type GraduationStatus = 'EXPECTED_GRADUATE' | 'GRADUATE';
+
+export interface StudentAttendance {
+  schoolYear: number;
+  unexcusedAbsenceDays: number;
+  unexcusedTardyCount: number;
+  unexcusedEarlyLeaveCount: number;
+  unexcusedClassAbsenceCount: number;
+}
+
+export interface StudentSchoolViolenceAction {
+  id?: number;
+  schoolYear: number | null;
+  actionNumber: number;
+  actionDate: string | null;
+  active: boolean;
+  note: string | null;
+}
+
 export interface StudentSummary {
   studentId: number;
   admissionYear: number;
@@ -8,6 +28,8 @@ export interface StudentSummary {
   highSchoolCode: string | null;
   highSchoolName: string | null;
   graduationYear: number | null;
+  educationBackground: EducationBackground;
+  graduationStatus: GraduationStatus;
   courseCount: number;
   averageGrade: number | null;
 }
@@ -47,6 +69,11 @@ export interface StudentTranscript {
   highSchoolCode: string | null;
   highSchoolName: string | null;
   graduationYear: number | null;
+  educationBackground: EducationBackground;
+  graduationStatus: GraduationStatus;
+  gedAverageScore: number | null;
+  attendance: StudentAttendance[];
+  schoolViolenceActions: StudentSchoolViolenceAction[];
   courses: TranscriptCourse[];
   dataQualityWarnings: string[];
 }
@@ -105,6 +132,14 @@ export interface UpdateStudentRequest {
   highSchoolCode: string;
   highSchoolName: string;
   graduationYear: number | null;
+}
+
+export interface UpdateStudentCommonDataRequest {
+  educationBackground: EducationBackground;
+  graduationStatus: GraduationStatus;
+  gedAverageScore: number | null;
+  attendance: StudentAttendance[];
+  schoolViolenceActions: Array<Omit<StudentSchoolViolenceAction, 'id' | 'note'> & { note: string }>;
 }
 
 export type UpsertTranscriptCourseRequest = Omit<TranscriptCourse, 'id'>;

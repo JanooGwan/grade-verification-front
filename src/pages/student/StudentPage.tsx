@@ -98,7 +98,7 @@ export default function StudentPage({ onVerify }: {
                 <span className="student-list-copy">
                   <strong>{student.name}</strong>
                   <small>{student.applicantNumber}</small>
-                  <small>{student.highSchoolName || '고등학교 미등록'} · {student.graduationYear || '-'}</small>
+                  <small>{student.highSchoolName || '고등학교 미등록'} · {student.graduationStatus === 'GRADUATE' ? '졸업자' : '졸업예정자'} · {student.graduationYear || '-'}</small>
                 </span>
                 <span className="student-list-metric"><strong>{student.averageGrade ?? '-'}</strong><small>평균등급</small><small>{student.courseCount}과목</small></span>
               </button>
@@ -123,7 +123,7 @@ export default function StudentPage({ onVerify }: {
                 <div>
                   <p className="section-step">TRANSCRIPT DETAIL</p>
                   <h2>{transcript.name}</h2>
-                  <p>{transcript.applicantNumber} · {transcript.highSchoolName || '고등학교 미등록'} · {transcript.graduationYear || '-'}년 졸업</p>
+                  <p>{transcript.applicantNumber} · {transcript.highSchoolName || '고등학교 미등록'} · {transcript.graduationStatus === 'GRADUATE' ? '졸업자' : '졸업예정자'} · {transcript.graduationYear || '-'}년</p>
                 </div>
                 <button type="button" onClick={() => onVerify(transcript)}>수동 검증 화면</button>
               </div>

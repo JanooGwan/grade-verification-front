@@ -725,9 +725,9 @@ h2 {
 .transcript-import-panel summary small, .student-data-editor summary small { color: #738078; font-size: .68rem; font-weight: 500; }
 .transcript-import-panel summary i, .student-data-editor summary i { color: #2d754d; font-size: .68rem; font-style: normal; font-weight: 800; }
 .transcript-import-form { display: grid; grid-template-columns: 120px 1.5fr 1fr auto auto; gap: 9px; align-items: end; padding: 0 18px 16px; }
-.transcript-import-form label, .student-profile-form label, .course-editor-form label { display: flex; flex-direction: column; gap: 5px; color: #536158; font-size: .68rem; font-weight: 750; }
-.transcript-import-form input, .transcript-import-form select, .student-profile-form input, .course-editor-form input, .course-editor-form select { min-width: 0; min-height: 40px; padding: 0 9px; border: 1px solid #cad4cd; border-radius: 9px; background: white; }
-.transcript-import-form button, .student-profile-form button, .course-editor-form button { min-height: 40px; padding: 0 11px; border: 0; border-radius: 9px; color: white; background: #285f40; font-size: .7rem; font-weight: 800; }
+.transcript-import-form label, .student-profile-form label, .student-common-data-form label, .course-editor-form label { display: flex; flex-direction: column; gap: 5px; color: #536158; font-size: .68rem; font-weight: 750; }
+.transcript-import-form input, .transcript-import-form select, .student-profile-form input, .student-common-data-form input, .student-common-data-form select, .course-editor-form input, .course-editor-form select { min-width: 0; min-height: 40px; padding: 0 9px; border: 1px solid #cad4cd; border-radius: 9px; background: white; }
+.transcript-import-form button, .student-profile-form button, .student-common-data-form button, .course-editor-form button { min-height: 40px; padding: 0 11px; border: 0; border-radius: 9px; color: white; background: #285f40; font-size: .7rem; font-weight: 800; }
 .transcript-import-form a { display: flex; min-height: 40px; align-items: center; padding: 0 10px; border: 1px solid #b8cdbf; border-radius: 9px; color: #285f3f; font-size: .68rem; font-weight: 750; text-decoration: none; }
 .import-preview, .import-history { margin: 0 18px 16px; }
 .import-preview-summary { display: flex; flex-wrap: wrap; gap: 8px; padding: 11px; border-radius: 10px; background: #edf5ef; }
@@ -748,6 +748,15 @@ h2 {
 .student-profile-form, .course-editor-form { display: grid; grid-template-columns: repeat(4, 1fr) auto auto; gap: 8px; align-items: end; padding: 0 16px 16px; }
 .student-profile-form > strong, .course-editor-heading { grid-column: 1 / -1; }
 .student-profile-form .danger-action, .course-editor-form .danger-action { color: #8c4036; background: #f8e4df; }
+.student-common-data-form { display: grid; gap: 12px; margin: 0 16px 16px; padding: 14px; border: 1px solid #dce7df; border-radius: 12px; background: #f8fbf9; }
+.student-common-profile { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.student-common-section { display: grid; gap: 7px; padding-top: 10px; border-top: 1px solid #e1e8e2; }
+.student-attendance-grid { display: grid; grid-template-columns: 70px repeat(4, minmax(0, 1fr)); gap: 7px; align-items: center; }
+.student-attendance-grid--head { color: #718078; font-size: .66rem; font-weight: 800; text-align: center; }
+.student-violence-row { display: grid; grid-template-columns: 90px 90px 140px 90px minmax(150px, 1fr) auto; gap: 7px; align-items: end; }
+.student-common-data-form .inline-check { align-items: center; justify-content: center; flex-direction: row; min-height: 40px; }
+.student-common-data-form .inline-check input { min-height: auto; }
+.student-common-data-form .danger-action { color: #8c4036; background: #f8e4df; }
 .course-editor-heading { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; padding-top: 14px; border-top: 1px solid #e1e8e2; }
 .course-editor-heading select { min-width: 260px; }
 .course-editor-form .inline-check { align-items: center; justify-content: center; flex-direction: row; min-height: 40px; }
@@ -890,6 +899,8 @@ h2 {
   .student-detail-empty { min-height: 320px; }
   .application-form { grid-template-columns: 1fr 1fr; }
   .transcript-import-form, .student-profile-form, .course-editor-form { grid-template-columns: 1fr 1fr; }
+  .student-common-profile { grid-template-columns: 1fr 1fr; }
+  .student-violence-row { grid-template-columns: 1fr 1fr 1fr; }
   .ops-metric-grid, .ops-panels { grid-template-columns: 1fr 1fr; }
 }
 
@@ -905,6 +916,8 @@ h2 {
   .application-score-result > header { align-items: flex-start; flex-direction: column; }
   .application-score-result > header > div:last-child { justify-items: start; }
   .transcript-import-form, .student-profile-form, .course-editor-form, .ops-metric-grid, .ops-panels { grid-template-columns: 1fr; }
+  .student-common-profile, .student-violence-row { grid-template-columns: 1fr; }
+  .student-attendance-grid { grid-template-columns: 58px repeat(4, minmax(54px, 1fr)); overflow-x: auto; }
   .verification-history > div { grid-template-columns: 1fr; }
   .extraction-compare-controls { grid-template-columns: 1fr; }
   .extraction-differences p { grid-template-columns: 1fr; }

@@ -11,7 +11,6 @@ import {
 import type {
   ApplicationScore,
   CalculateApplicationScoreRequest,
-  EducationBackground,
   StudentApplication,
 } from '@/apis/admission/entity';
 import { admissionQueries, admissionQueryKeys } from '@/apis/admission/queries';
@@ -258,13 +257,6 @@ function ApplicationCard({ application, studentId, verifying, deleting, scoring,
 }
 
 const blankScoreRequest = (): CalculateApplicationScoreRequest => ({
-  educationBackground: 'DOMESTIC_HIGH_SCHOOL',
-  gedAverageScore: null,
-  unexcusedAbsenceDays: 0,
-  unexcusedTardyCount: 0,
-  unexcusedEarlyLeaveCount: 0,
-  unexcusedClassAbsenceCount: 0,
-  schoolViolenceAction: 0,
   essayScore: null,
   practicalScore: null,
 });
@@ -276,7 +268,6 @@ function ApplicationScoreForm({ application, pending, onSubmit }: {
 }) {
   const [request, setRequest] = useState(blankScoreRequest);
   const trackName = application.admissionTrackName.replaceAll(' ', '');
-  const needsAttendance = trackName.includes('참인재') && request.educationBackground !== 'GED';
   const needsEssay = trackName.includes('논술');
   const needsPractical = trackName.includes('체육실기');
   const inputId = `application-score-${application.id}`;
@@ -285,37 +276,8 @@ function ApplicationScoreForm({ application, pending, onSubmit }: {
   return (
     <details className="application-score-form">
       <summary>검정고시·외국고·출결·학교폭력 포함 총점 계산</summary>
+      <p>학력·졸업 상태·출결·학교폭력은 학생의 대학 공통 데이터에서 자동으로 가져옵니다.</p>
       <div className="application-score-fields">
-        <label htmlFor={`${inputId}-background`}>학력 유형</label>
-        <select
-          id={`${inputId}-background`}
-          value={request.educationBackground}
-          onChange={(event) => setRequest({
-            ...request,
-            educationBackground: event.target.value as EducationBackground,
-          })}
-        >
-          <option value="DOMESTIC_HIGH_SCHOOL">국내 고등학교</option>
-          <option value="GED">검정고시</option>
-          <option value="FOREIGN_HIGH_SCHOOL">외국 고등학교</option>
-        </select>
-
-        {request.educationBackground === 'GED' && <>
-          <label htmlFor={`${inputId}-ged`}>검정고시 전 과목 평균</label>
-          <input id={`${inputId}-ged`} type="number" min="0" max="100" step="0.01" value={request.gedAverageScore ?? ''} onChange={(event) => setRequest({ ...request, gedAverageScore: number(event.target.value) })} />
-        </>}
-
-        {needsAttendance && <>
-          <label htmlFor={`${inputId}-absence`}>미인정 결석</label>
-          <input id={`${inputId}-absence`} type="number" min="0" value={request.unexcusedAbsenceDays ?? ''} onChange={(event) => setRequest({ ...request, unexcusedAbsenceDays: number(event.target.value) })} />
-          <label htmlFor={`${inputId}-tardy`}>미인정 지각</label>
-          <input id={`${inputId}-tardy`} type="number" min="0" value={request.unexcusedTardyCount ?? ''} onChange={(event) => setRequest({ ...request, unexcusedTardyCount: number(event.target.value) })} />
-          <label htmlFor={`${inputId}-early-leave`}>미인정 조퇴</label>
-          <input id={`${inputId}-early-leave`} type="number" min="0" value={request.unexcusedEarlyLeaveCount ?? ''} onChange={(event) => setRequest({ ...request, unexcusedEarlyLeaveCount: number(event.target.value) })} />
-          <label htmlFor={`${inputId}-class-absence`}>미인정 결과</label>
-          <input id={`${inputId}-class-absence`} type="number" min="0" value={request.unexcusedClassAbsenceCount ?? ''} onChange={(event) => setRequest({ ...request, unexcusedClassAbsenceCount: number(event.target.value) })} />
-        </>}
-
         {needsEssay && <>
           <label htmlFor={`${inputId}-essay`}>논술고사 점수(800점)</label>
           <input id={`${inputId}-essay`} type="number" min="0" max="800" value={request.essayScore ?? ''} onChange={(event) => setRequest({ ...request, essayScore: number(event.target.value) })} />
@@ -326,11 +288,6 @@ function ApplicationScoreForm({ application, pending, onSubmit }: {
           <input id={`${inputId}-practical`} type="number" min="0" max="550" step="0.01" value={request.practicalScore ?? ''} onChange={(event) => setRequest({ ...request, practicalScore: number(event.target.value) })} />
         </>}
 
-        <label htmlFor={`${inputId}-violence`}>학교폭력 조치</label>
-        <select id={`${inputId}-violence`} value={request.schoolViolenceAction} onChange={(event) => setRequest({ ...request, schoolViolenceAction: Number(event.target.value) })}>
-          <option value={0}>없음</option>
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((action) => <option key={action} value={action}>{action}호</option>)}
-        </select>
       </div>
       <button type="button" disabled={pending} onClick={() => onSubmit(request)}>
         {pending ? '총점 계산 중…' : '전형 총점 계산'}

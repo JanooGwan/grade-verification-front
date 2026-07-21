@@ -64,13 +64,6 @@ export type EducationBackground = 'DOMESTIC_HIGH_SCHOOL' | 'GED' | 'FOREIGN_HIGH
 export type ApplicationScoreStatus = 'COMPLETE' | 'QUALITATIVE_PENDING' | 'INELIGIBLE';
 
 export interface CalculateApplicationScoreRequest {
-  educationBackground: EducationBackground;
-  gedAverageScore: number | null;
-  unexcusedAbsenceDays: number | null;
-  unexcusedTardyCount: number | null;
-  unexcusedEarlyLeaveCount: number | null;
-  unexcusedClassAbsenceCount: number | null;
-  schoolViolenceAction: number;
   essayScore: number | null;
   practicalScore: number | null;
 }

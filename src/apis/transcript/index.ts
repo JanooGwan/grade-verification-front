@@ -1,5 +1,5 @@
 import { apiClient } from '@/apis/client';
-import type { StudentPage, StudentTranscript, TranscriptImportHistory, TranscriptImportMode, TranscriptImportResult, TranscriptPreview, TranscriptCourse, UpdateStudentRequest, UpsertTranscriptCourseRequest } from './entity';
+import type { StudentPage, StudentTranscript, TranscriptImportHistory, TranscriptImportMode, TranscriptImportResult, TranscriptPreview, TranscriptCourse, UpdateStudentCommonDataRequest, UpdateStudentRequest, UpsertTranscriptCourseRequest } from './entity';
 
 export interface StudentSearchParams {
   admissionYear: number;
@@ -40,6 +40,7 @@ export const importTranscriptExcel = (admissionYear: number, mode: TranscriptImp
 
 export const getTranscriptImports = () => apiClient.get<TranscriptImportHistory[]>('/api/transcripts/imports');
 export const updateStudent = (studentId: number, request: UpdateStudentRequest) => apiClient.put<StudentTranscript>(`/api/transcripts/students/${studentId}`, request);
+export const updateStudentCommonData = (studentId: number, request: UpdateStudentCommonDataRequest) => apiClient.put<StudentTranscript>(`/api/transcripts/students/${studentId}/common-data`, request);
 export const deleteStudent = (studentId: number) => apiClient.delete(`/api/transcripts/students/${studentId}`);
 export const createTranscriptCourse = (studentId: number, request: UpsertTranscriptCourseRequest) => apiClient.post<TranscriptCourse>(`/api/transcripts/students/${studentId}/courses`, request);
 export const updateTranscriptCourse = (studentId: number, courseId: number, request: UpsertTranscriptCourseRequest) => apiClient.put<TranscriptCourse>(`/api/transcripts/students/${studentId}/courses/${courseId}`, request);
