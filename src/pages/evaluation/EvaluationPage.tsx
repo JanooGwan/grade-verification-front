@@ -30,6 +30,7 @@ import { toCourseGrade, type StudentTranscript } from '@/apis/transcript/entity'
 import ConfirmDialog from '@/components/ConfirmDialog';
 import CalculationTrace from '@/components/CalculationTrace';
 import StatusPanel from '@/components/StatusPanel';
+import { roundingLabels } from '@/constants/evaluation';
 
 const subjects: Array<[SubjectCategory, string]> = [
   ['KOREAN', '국어'],
@@ -684,7 +685,7 @@ function RuleLifecyclePanel({ universities, onApplyExtraction }: {
       </details>
 
       <div className="review-inputs">
-        <label>작업자<input ref={actorInputRef} value={actor} aria-invalid={actionValidation !== null} onChange={(event) => { setActor(event.target.value); if (event.target.value.trim()) setActionValidation(null); }} placeholder="검수자 이름" /></label>
+        <label>작업자<input ref={actorInputRef} value={actor} aria-invalid={actionValidation !== null} aria-describedby={actionValidation ? `rule-action-error-${actionValidation.ruleId}` : undefined} onChange={(event) => { setActor(event.target.value); if (event.target.value.trim()) setActionValidation(null); }} placeholder="검수자 이름" /></label>
         <label>검수·게시 메모<input value={note} onChange={(event) => setNote(event.target.value)} placeholder="확인 내용 또는 게시 사유" /></label>
       </div>
 
@@ -719,7 +720,7 @@ function RuleLifecyclePanel({ universities, onApplyExtraction }: {
                 </div>
               </div>
               {actionValidation?.ruleId === rule.id && (
-                <div className="rule-card-error error-banner" role="alert">{actionValidation.message}</div>
+                <div id={`rule-action-error-${rule.id}`} className="rule-card-error error-banner" role="alert">{actionValidation.message}</div>
               )}
               {expanded && <RuleDetail rule={rule} id={`rule-detail-${rule.id}`} />}
             </article>
@@ -762,14 +763,6 @@ const achievementConversionLabels: Record<EvaluationRule['achievementConversion'
   DIRECT_TABLE: '성취도 A/B/C를 지정 점수로 직접 환산',
   Z_SCORE: '원점수·평균·표준편차를 이용한 Z점수 환산',
   EXCLUDE: '성취도 과목은 계산에서 제외',
-};
-
-const roundingLabels: Record<EvaluationRule['finalRounding'], string> = {
-  HALF_UP: '반올림',
-  DOWN: '절사',
-  UP: '올림',
-  FLOOR: '내림',
-  CEILING: '천장값',
 };
 
 function RuleDetail({ rule, id }: { rule: EvaluationRule; id: string }) {

@@ -127,7 +127,7 @@ export default function StudentPage({ onVerify }: {
                 </div>
                 <button type="button" onClick={() => onVerify(transcript)}>수동 검증 화면</button>
               </div>
-              <StudentDataEditor transcript={transcript} onDeleted={() => setSelectedApplicant('')} />
+              <StudentDataEditor key={transcript.studentId} transcript={transcript} onDeleted={() => setSelectedApplicant('')} />
               <StudentApplicationPanel key={transcript.studentId} transcript={transcript} />
               <div className="semester-sections">
                 {[1, 2, 3].flatMap((schoolYear) => [1, 2].map((semester) => {

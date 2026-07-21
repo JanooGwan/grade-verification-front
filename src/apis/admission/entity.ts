@@ -1,4 +1,5 @@
 import type { GradeVerification } from '@/apis/evaluation/entity';
+import type { EducationBackground } from '@/apis/transcript/entity';
 
 export interface RecruitmentUnit {
   id: number;
@@ -60,12 +61,12 @@ export interface ApplicationVerification {
   verification: GradeVerification;
 }
 
-export type EducationBackground = 'DOMESTIC_HIGH_SCHOOL' | 'GED' | 'FOREIGN_HIGH_SCHOOL';
 export type ApplicationScoreStatus = 'COMPLETE' | 'QUALITATIVE_PENDING' | 'INELIGIBLE';
 
 export interface CalculateApplicationScoreRequest {
   essayScore: number | null;
   practicalScore: number | null;
+  bonusScore: number | null;
 }
 
 export interface ApplicationScore {

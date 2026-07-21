@@ -1,12 +1,5 @@
 import type { CalculationSummary, ScoreAggregation } from '@/apis/evaluation/entity';
-
-const roundingLabels = {
-  HALF_UP: '반올림',
-  DOWN: '절사',
-  UP: '올림',
-  FLOOR: '내림',
-  CEILING: '천장',
-} as const;
+import { roundingLabels } from '@/constants/evaluation';
 
 function display(value: number, scale?: number) {
   return value.toLocaleString('ko-KR', {

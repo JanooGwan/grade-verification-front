@@ -163,6 +163,7 @@ export interface GradeVerification {
     gradeWeight: number;
     subjectWeight: number;
     appliedWeight: number;
+    appliedCredits: number;
     weightedScore: number;
     included: boolean;
     exclusionReason: string | null;

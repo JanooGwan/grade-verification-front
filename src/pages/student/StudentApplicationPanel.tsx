@@ -58,6 +58,7 @@ export default function StudentApplicationPanel({ transcript }: { transcript: St
     onSuccess: async () => {
       setUnitId(0);
       setVerification(null);
+      setApplicationScore(null);
       await queryClient.invalidateQueries({
         queryKey: admissionQueryKeys.applications(transcript.studentId),
       });
@@ -68,6 +69,7 @@ export default function StudentApplicationPanel({ transcript }: { transcript: St
       deleteStudentApplication(transcript.studentId, applicationId),
     onSuccess: async () => {
       setVerification(null);
+      setApplicationScore(null);
       setApplicationPendingDelete(null);
       await queryClient.invalidateQueries({
         queryKey: admissionQueryKeys.applications(transcript.studentId),
@@ -216,8 +218,10 @@ function ApplicationCard({ application, studentId, verifying, deleting, scoring,
   const statusLabel = status === 'MATCHED' ? '규칙 연결됨'
     : status === 'NOT_FOUND' ? '규칙 없음'
       : status === 'CONFLICT' ? '중복 충돌' : '확인 중';
-  const supportsQuantitativeScore = application.admissionYear === 2027
-    && application.universityName.replaceAll(' ', '').includes('한신');
+  const universityName = application.universityName.replaceAll(' ', '');
+  const supportsQuantitativeScore = (application.admissionYear === 2027
+    && ['한신', '한국공학', '명지전문', '삼육'].some((name) => universityName.includes(name)))
+    || (application.admissionYear === 2026 && universityName.includes('경복'));
 
   return (
     <article className="application-item">
@@ -260,6 +264,7 @@ function ApplicationCard({ application, studentId, verifying, deleting, scoring,
 const blankScoreRequest = (): CalculateApplicationScoreRequest => ({
   essayScore: null,
   practicalScore: null,
+  bonusScore: null,
 });
 
 function ApplicationScoreForm({ application, pending, onSubmit }: {
@@ -271,6 +276,7 @@ function ApplicationScoreForm({ application, pending, onSubmit }: {
   const trackName = application.admissionTrackName.replaceAll(' ', '');
   const needsEssay = trackName.includes('논술');
   const needsPractical = trackName.includes('체육실기');
+  const needsBonus = application.universityName.replaceAll(' ', '').includes('경복');
   const inputId = `application-score-${application.id}`;
   const number = (value: string) => value === '' ? null : Number(value);
 
@@ -287,6 +293,11 @@ function ApplicationScoreForm({ application, pending, onSubmit }: {
         {needsPractical && <>
           <label htmlFor={`${inputId}-practical`}>체육실기 환산점수(550점)</label>
           <input id={`${inputId}-practical`} type="number" min="0" max="550" step="0.01" value={request.practicalScore ?? ''} onChange={(event) => setRequest({ ...request, practicalScore: number(event.target.value) })} />
+        </>}
+
+        {needsBonus && <>
+          <label htmlFor={`${inputId}-bonus`}>KBU입시드림포인트 가산점</label>
+          <input id={`${inputId}-bonus`} type="number" min="0" max="10" step="0.01" value={request.bonusScore ?? ''} onChange={(event) => setRequest({ ...request, bonusScore: number(event.target.value) })} />
         </>}
 
       </div>
@@ -358,7 +369,7 @@ function VerificationDetail({ result }: { result: GradeVerification }) {
             <span><b>{subjectLabels[course.subjectCategory]}</b>{course.courseName}{course.appliedSubjectCategory && course.subjectCategory !== course.appliedSubjectCategory && <small>→ {subjectLabels[course.appliedSubjectCategory]} 반영</small>}</span>
             <span>{course.grade ? `${course.grade}등급` : course.achievement ?? '-'}</span>
             <span>{course.convertedScore ?? '-'}</span>
-            <span>{course.gradeWeight} × {course.subjectWeight} × {course.credits}<small>적용 {course.appliedWeight}</small></span>
+            <span>{course.gradeWeight} × {course.subjectWeight} × {course.appliedCredits}<small>{course.appliedCredits !== course.credits && `원 이수단위 ${course.credits} · `}적용 {course.appliedWeight}</small></span>
             <span>{course.included ? <b>반영 {course.weightedScore}</b> : <em>{course.exclusionReason}</em>}</span>
           </div>
         ))}
