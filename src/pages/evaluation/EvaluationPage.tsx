@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { ApiError } from '@/apis/client';
@@ -429,6 +429,7 @@ function RuleLifecyclePanel({ universities, onApplyExtraction }: {
   const [note, setNote] = useState('');
   const [bulkJson, setBulkJson] = useState('');
   const [panelError, setPanelError] = useState('');
+  const [actionValidation, setActionValidation] = useState<{ ruleId: number; message: string } | null>(null);
   const [pdfUniversityId, setPdfUniversityId] = useState(0);
   const [pdfAdmissionYear, setPdfAdmissionYear] = useState(2027);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
@@ -438,6 +439,7 @@ function RuleLifecyclePanel({ universities, onApplyExtraction }: {
   const [compareIds, setCompareIds] = useState<[number, number]>([0, 0]);
   const [expandedRuleId, setExpandedRuleId] = useState<number | null>(null);
   const [rulePendingRetirement, setRulePendingRetirement] = useState<EvaluationRule | null>(null);
+  const actorInputRef = useRef<HTMLInputElement>(null);
   const adminRulesQuery = useQuery(evaluationQueries.adminRules(status || undefined));
   const extractionsQuery = useQuery(evaluationQueries.extractions());
   const refreshRules = () => queryClient.invalidateQueries({ queryKey: evaluationQueryKeys.all });
@@ -450,6 +452,7 @@ function RuleLifecyclePanel({ universities, onApplyExtraction }: {
     },
     onSuccess: async () => {
       setRulePendingRetirement(null);
+      setActionValidation(null);
       await refreshRules();
     },
   });
@@ -532,8 +535,10 @@ function RuleLifecyclePanel({ universities, onApplyExtraction }: {
 
   const runAction = (rule: EvaluationRule, action: RuleAction) => {
     setPanelError('');
+    setActionValidation(null);
     if (!actor.trim()) {
-      setPanelError('검수자 또는 작업자 이름을 입력해 주세요.');
+      setActionValidation({ ruleId: rule.id, message: '작업자 이름을 입력한 뒤 다시 실행해 주세요.' });
+      actorInputRef.current?.focus();
       return;
     }
     if (action === 'retire') {
@@ -679,7 +684,7 @@ function RuleLifecyclePanel({ universities, onApplyExtraction }: {
       </details>
 
       <div className="review-inputs">
-        <label>작업자<input value={actor} onChange={(event) => setActor(event.target.value)} placeholder="검수자 이름" /></label>
+        <label>작업자<input ref={actorInputRef} value={actor} aria-invalid={actionValidation !== null} onChange={(event) => { setActor(event.target.value); if (event.target.value.trim()) setActionValidation(null); }} placeholder="검수자 이름" /></label>
         <label>검수·게시 메모<input value={note} onChange={(event) => setNote(event.target.value)} placeholder="확인 내용 또는 게시 사유" /></label>
       </div>
 
@@ -713,6 +718,9 @@ function RuleLifecyclePanel({ universities, onApplyExtraction }: {
                   {rule.status !== 'RETIRED' && <button className="danger-action" type="button" onClick={() => runAction(rule, 'retire')}>폐기</button>}
                 </div>
               </div>
+              {actionValidation?.ruleId === rule.id && (
+                <div className="rule-card-error error-banner" role="alert">{actionValidation.message}</div>
+              )}
               {expanded && <RuleDetail rule={rule} id={`rule-detail-${rule.id}`} />}
             </article>
           );
