@@ -123,7 +123,7 @@ export default function StudentPage({ onVerify }: {
                 <div>
                   <p className="section-step">TRANSCRIPT DETAIL</p>
                   <h2>{transcript.name}</h2>
-                  <p>{transcript.applicantNumber} · {transcript.highSchoolName || '고등학교 미등록'} · {transcript.graduationStatus === 'GRADUATE' ? '졸업자' : '졸업예정자'} · {transcript.graduationYear || '-'}년</p>
+                  <p>{transcript.applicantNumber} · {transcript.highSchoolName || '고등학교 미등록'} · {transcript.graduationStatus === 'GRADUATE' ? '졸업자' : '졸업예정자'} · {transcript.graduationYear == null ? '-' : `${transcript.graduationYear}년`}</p>
                 </div>
                 <button type="button" onClick={() => onVerify(transcript)}>수동 검증 화면</button>
               </div>
