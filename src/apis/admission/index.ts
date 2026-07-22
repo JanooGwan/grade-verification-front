@@ -42,3 +42,6 @@ export const getVerificationHistory = (studentId: number) =>
 
 export const getVerificationHistoryDetail = (studentId: number, runId: number) =>
   apiClient.get<VerificationHistoryDetail>(`/api/admissions/students/${studentId}/verifications/${runId}`);
+
+export const getVerificationResultExcel = (studentId: number, runId: number) =>
+  apiClient.getBlob(`/api/admissions/students/${studentId}/verifications/${runId}/excel`);

@@ -87,8 +87,21 @@ async function requestForm<T>(endpoint: string, formData: FormData): Promise<T> 
   return (await response.json()) as T;
 }
 
+async function requestBlob(endpoint: string): Promise<Blob> {
+  const response = await fetch(joinUrl(BASE_URL, endpoint), {
+    method: 'GET',
+    headers: ADMIN_API_KEY ? { 'X-Admin-Key': ADMIN_API_KEY } : undefined,
+  });
+  if (!response.ok) {
+    const errorResponse = await parseErrorResponse(response);
+    throw new ApiError(response.status, errorResponse?.message ?? '파일 다운로드에 실패했습니다.', errorResponse);
+  }
+  return response.blob();
+}
+
 export const apiClient = {
   get: <T>(endpoint: string) => request<T>(endpoint, { method: 'GET' }),
+  getBlob: (endpoint: string) => requestBlob(endpoint),
   post: <T>(endpoint: string, body: unknown) => request<T>(endpoint, { method: 'POST', body }),
   postForm: <T>(endpoint: string, formData: FormData) => requestForm<T>(endpoint, formData),
   put: <T>(endpoint: string, body: unknown) => request<T>(endpoint, { method: 'PUT', body }),

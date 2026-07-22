@@ -868,6 +868,9 @@ h2 {
 .verification-result-heading h3 { margin: 0 0 5px; color: white; }
 .verification-result-heading p:not(.section-step) { margin: 0; color: #c4dacb; font-size: .72rem; }
 .verification-result-heading .section-step { color: #9ed1ad; }
+.verification-result-actions { display: flex; align-items: center; gap: 12px; }
+.verification-result-actions > button { border: 1px solid #9ed1ad; background: white; color: #173f2a; white-space: nowrap; }
+.verification-result-actions > button:hover:not(:disabled) { background: #edf6f0; }
 .verification-score { display: grid; min-width: 120px; justify-items: end; }
 .verification-score small, .verification-score span { color: #b9d4c1; font-size: .65rem; }
 .verification-score strong { font-size: 2rem; line-height: 1.1; }

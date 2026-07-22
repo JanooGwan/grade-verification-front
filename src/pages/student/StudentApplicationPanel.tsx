@@ -6,6 +6,7 @@ import {
   createStudentApplication,
   deleteStudentApplication,
   getVerificationHistoryDetail,
+  getVerificationResultExcel,
   verifyStudentApplication,
 } from '@/apis/admission';
 import type {
@@ -41,6 +42,7 @@ export default function StudentApplicationPanel({ transcript }: { transcript: St
   const [trackId, setTrackId] = useState(0);
   const [unitId, setUnitId] = useState(0);
   const [verification, setVerification] = useState<GradeVerification | null>(null);
+  const [verificationRunId, setVerificationRunId] = useState<number | null>(null);
   const [applicationScore, setApplicationScore] = useState<ApplicationScore | null>(null);
   const [applicationPendingDelete, setApplicationPendingDelete] = useState<number | null>(null);
   const universitiesQuery = useQuery(universityQueries.list());
@@ -58,6 +60,7 @@ export default function StudentApplicationPanel({ transcript }: { transcript: St
     onSuccess: async () => {
       setUnitId(0);
       setVerification(null);
+      setVerificationRunId(null);
       setApplicationScore(null);
       await queryClient.invalidateQueries({
         queryKey: admissionQueryKeys.applications(transcript.studentId),
@@ -69,6 +72,7 @@ export default function StudentApplicationPanel({ transcript }: { transcript: St
       deleteStudentApplication(transcript.studentId, applicationId),
     onSuccess: async () => {
       setVerification(null);
+      setVerificationRunId(null);
       setApplicationScore(null);
       setApplicationPendingDelete(null);
       await queryClient.invalidateQueries({
@@ -81,6 +85,7 @@ export default function StudentApplicationPanel({ transcript }: { transcript: St
       verifyStudentApplication(transcript.studentId, applicationId),
     onSuccess: async (response) => {
       setVerification(response.verification);
+      setVerificationRunId(response.verificationRunId);
       await queryClient.invalidateQueries({ queryKey: admissionQueryKeys.verifications(transcript.studentId) });
     },
   });
@@ -93,7 +98,23 @@ export default function StudentApplicationPanel({ transcript }: { transcript: St
   });
   const historyDetailMutation = useMutation({
     mutationFn: (runId: number) => getVerificationHistoryDetail(transcript.studentId, runId),
-    onSuccess: (response) => setVerification(response.verification),
+    onSuccess: (response) => {
+      setVerification(response.verification);
+      setVerificationRunId(response.verificationRunId);
+    },
+  });
+  const exportMutation = useMutation({
+    mutationFn: (runId: number) => getVerificationResultExcel(transcript.studentId, runId),
+    onSuccess: (file, runId) => {
+      const url = URL.createObjectURL(file);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `성적검증결과-${runId}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    },
   });
 
   const submit = (event: FormEvent) => {
@@ -105,7 +126,7 @@ export default function StudentApplicationPanel({ transcript }: { transcript: St
     setApplicationPendingDelete(applicationId);
   };
 
-  const requestError = createMutation.error ?? deleteMutation.error ?? verifyMutation.error ?? scoreMutation.error ?? historyDetailMutation.error
+  const requestError = createMutation.error ?? deleteMutation.error ?? verifyMutation.error ?? scoreMutation.error ?? historyDetailMutation.error ?? exportMutation.error
     ?? applicationsQuery.error ?? tracksQuery.error;
 
   return (
@@ -184,7 +205,11 @@ export default function StudentApplicationPanel({ transcript }: { transcript: St
         <summary>성적 검증 이력 {historyQuery.data.length}건</summary>
         <div>{historyQuery.data.map((run) => <button type="button" key={run.verificationRunId} onClick={() => historyDetailMutation.mutate(run.verificationRunId)}><span>{run.universityName} · {run.recruitmentUnit}</span><b>{run.finalScore}점</b><small>v{run.ruleVersion} · {new Date(run.createdAt).toLocaleString()}</small></button>)}</div>
       </details>}
-      {verification && <VerificationDetail result={verification} />}
+      {verification && <VerificationDetail
+        result={verification}
+        exporting={exportMutation.isPending}
+        onExport={verificationRunId === null ? undefined : () => exportMutation.mutate(verificationRunId)}
+      />}
       {applicationScore && <ApplicationScoreDetail result={applicationScore} />}
       <ConfirmDialog
         open={applicationPendingDelete !== null}
@@ -349,7 +374,11 @@ function ApplicationScoreDetail({ result }: { result: ApplicationScore }) {
   );
 }
 
-function VerificationDetail({ result }: { result: GradeVerification }) {
+function VerificationDetail({ result, exporting = false, onExport }: {
+  result: GradeVerification;
+  exporting?: boolean;
+  onExport?: () => void;
+}) {
   const [showExcluded, setShowExcluded] = useState(true);
   const calculations = showExcluded ? result.calculations : result.calculations.filter((course) => course.included);
   return (
@@ -360,7 +389,12 @@ function VerificationDetail({ result }: { result: GradeVerification }) {
           <h3>{result.universityName} 최종 환산 결과</h3>
           <p>{result.admissionType} · {result.recruitmentUnit} · {result.ruleName} v{result.ruleVersion}</p>
         </div>
-        <div className="verification-score"><small>최종 점수</small><strong>{result.finalScore}</strong><span>평균등급 {result.averageGrade}</span></div>
+        <div className="verification-result-actions">
+          {onExport && <button type="button" disabled={exporting} onClick={onExport}>
+            {exporting ? 'Excel 생성 중…' : '검증 결과 Excel'}
+          </button>}
+          <div className="verification-score"><small>최종 점수</small><strong>{result.finalScore}</strong><span>평균등급 {result.averageGrade}</span></div>
+        </div>
       </div>
       <div className="verification-facts">
         <span><b>{result.includedCourseCount}</b>개 반영</span>
