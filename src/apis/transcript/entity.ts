@@ -119,6 +119,7 @@ export interface TranscriptPreview {
   totalRows: number;
   validRows: number;
   invalidRows: number;
+  skippedRows: number;
   sampleRows: Array<{
     rowNumber: number;
     applicantNumber: string;
@@ -131,7 +132,7 @@ export interface TranscriptPreview {
     achievement: AchievementLevel | null;
     credits: number;
   }>;
-  errors: Array<{ rowNumber: number; message: string }>;
+  errors: Array<{ rowNumber: number; reason: string }>;
   warnings: string[];
 }
 
@@ -142,6 +143,7 @@ export interface TranscriptImportResult {
   totalRows: number;
   importedRows: number;
   failedRows: number;
+  skippedRows: number;
   createdStudents: number;
   updatedStudents: number;
   createdCourses: number;
@@ -150,7 +152,7 @@ export interface TranscriptImportResult {
   createdApplications: number;
   createdAdmissionTracks: number;
   createdRecruitmentUnits: number;
-  errors: Array<{ rowNumber: number; message: string }>;
+  errors: Array<{ rowNumber: number; reason: string }>;
   warnings: string[];
 }
 
