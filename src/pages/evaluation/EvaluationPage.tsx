@@ -58,11 +58,15 @@ const emptyCourse = (): CourseGrade => ({
   subjectCategory: 'KOREAN',
   courseName: '',
   grade: 1,
+  gradeScale: 'NINE_LEVEL',
   achievement: null,
   rawScore: null,
   meanScore: null,
   standardDeviation: null,
   studentCount: null,
+  rankPosition: null,
+  tiedRankCount: null,
+  legacyAchievement: null,
   careerSubject: false,
   professionalCourse: false,
   credits: 3,
@@ -84,6 +88,8 @@ const baseRule: CreateEvaluationRuleRequest = {
   minimumCourseCount: 0,
   scoreAggregation: 'COURSE_SCORE_AVERAGE',
   achievementConversion: 'DIRECT_TABLE',
+  inputGradeScale: 'NINE_LEVEL',
+  legacyAchievementGrades: [1, 3, 5, 7, 9],
   includeThirdYearSecondSemester: false,
   includeThirdYearSecondSemesterForGraduates: false,
   includeProfessionalCourses: false,
@@ -319,7 +325,9 @@ export default function EvaluationPage({ initialTranscript }: { initialTranscrip
   const [result, setResult] = useState<GradeVerification | null>(null);
   const [error, setError] = useState('');
   const selectedRule = rulesQuery.data?.find((rule) => rule.id === ruleId);
-  const verifyMutation = useMutation({ mutationFn: () => verifyGrades(ruleId, courses) });
+  const verifyMutation = useMutation({ mutationFn: () => verifyGrades(
+    ruleId, courses, initialTranscript?.graduationStatus === 'GRADUATE', initialTranscript?.graduationYear ?? null,
+  ) });
 
   const updateCourse = (index: number, patch: Partial<CourseGrade>) => {
     setCourses((current) => current.map((course, courseIndex) => courseIndex === index ? { ...course, ...patch } : course));
@@ -837,6 +845,15 @@ function RuleDetail({ rule, id }: { rule: EvaluationRule; id: string }) {
           )}
         </section>
         <section>
+          <h4>구교육과정·등급제</h4>
+          <p>기본 입력 등급제: <b>{rule.inputGradeScale}</b></p>
+          <div className="rule-chip-list">
+            {['수', '우', '미', '양', '가'].map((label, index) => (
+              <span key={label}>{label} → {rule.legacyAchievementGrades[index]}등급</span>
+            ))}
+          </div>
+        </section>
+        <section>
           <h4>소수점 처리</h4>
           <p>중간값: 소수 {rule.intermediateScale + 1}째 자리에서 {roundingLabels[rule.intermediateRounding]}하여 {rule.intermediateScale}째 자리까지</p>
           <p>최종값: 소수 {rule.finalScale + 1}째 자리에서 {roundingLabels[rule.finalRounding]}하여 {rule.finalScale}째 자리까지</p>
@@ -861,8 +878,10 @@ function CourseRow({ index, course, count, rule, onChange, onRemove }: {
   onChange: (patch: Partial<CourseGrade>) => void;
   onRemove: () => void;
 }) {
-  const achievementMode = course.grade === null;
-  const needsZScore = achievementMode && rule?.achievementConversion === 'Z_SCORE';
+  const inputMode = course.rankPosition !== null ? 'RANK'
+    : course.legacyAchievement !== null ? 'LEGACY'
+      : course.grade === null ? 'ACHIEVEMENT' : 'GRADE';
+  const needsZScore = inputMode === 'ACHIEVEMENT' && rule?.achievementConversion === 'Z_SCORE';
   return (
     <div className="course-entry">
       <div className="grade-row" role="row">
@@ -870,12 +889,18 @@ function CourseRow({ index, course, count, rule, onChange, onRemove }: {
         <select aria-label={`${index + 1}행 학기`} value={course.semester} onChange={(event) => onChange({ semester: Number(event.target.value) })}><option value={1}>1학기</option><option value={2}>2학기</option></select>
         <select aria-label={`${index + 1}행 교과`} value={course.subjectCategory} onChange={(event) => onChange({ subjectCategory: event.target.value as SubjectCategory })}>{subjects.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
         <input aria-label={`${index + 1}행 과목명`} placeholder="예: 미적분" required value={course.courseName} onChange={(event) => onChange({ courseName: event.target.value })} />
-        <select aria-label={`${index + 1}행 평가방식`} value={achievementMode ? 'ACHIEVEMENT' : 'GRADE'} onChange={(event) => onChange(event.target.value === 'GRADE' ? { grade: 1, achievement: null } : { grade: null, achievement: 'A' })}><option value="GRADE">석차등급</option><option value="ACHIEVEMENT">성취도</option></select>
-        {achievementMode ? (
+        <select aria-label={`${index + 1}행 평가방식`} value={inputMode} onChange={(event) => {
+          const mode = event.target.value;
+          if (mode === 'GRADE') onChange({ grade: 1, gradeScale: 'NINE_LEVEL', achievement: null, rankPosition: null, tiedRankCount: null, legacyAchievement: null });
+          if (mode === 'ACHIEVEMENT') onChange({ grade: null, achievement: 'A', rankPosition: null, tiedRankCount: null, legacyAchievement: null });
+          if (mode === 'RANK') onChange({ grade: null, gradeScale: 'LEGACY', achievement: null, rankPosition: 1, tiedRankCount: 1, legacyAchievement: null, studentCount: 1 });
+          if (mode === 'LEGACY') onChange({ grade: null, gradeScale: 'LEGACY', achievement: null, rankPosition: null, tiedRankCount: null, legacyAchievement: 'SU' });
+        }}><option value="GRADE">석차등급</option><option value="ACHIEVEMENT">성취도</option><option value="RANK">석차·동석차</option><option value="LEGACY">수/우/미/양/가</option></select>
+        {inputMode === 'ACHIEVEMENT' ? (
           <select aria-label={`${index + 1}행 성취도`} value={course.achievement ?? 'A'} onChange={(event) => onChange({ achievement: event.target.value as AchievementLevel })}>{['A', 'B', 'C', 'D', 'E'].map((value) => <option key={value}>{value}</option>)}</select>
-        ) : (
-          <input aria-label={`${index + 1}행 등급`} type="number" min="1" max="9" required value={course.grade ?? ''} onChange={(event) => onChange({ grade: Number(event.target.value) })} />
-        )}
+        ) : inputMode === 'RANK' ? <span className="course-input-label">석차 환산</span>
+          : inputMode === 'LEGACY' ? <select aria-label={`${index + 1}행 평어`} value={course.legacyAchievement ?? 'SU'} onChange={(event) => onChange({ legacyAchievement: event.target.value as CourseGrade['legacyAchievement'] })}><option value="SU">수</option><option value="WOO">우</option><option value="MI">미</option><option value="YANG">양</option><option value="GA">가</option></select>
+            : <><select aria-label={`${index + 1}행 등급제`} value={course.gradeScale} onChange={(event) => onChange({ gradeScale: event.target.value as CourseGrade['gradeScale'], grade: 1 })}><option value="NINE_LEVEL">9등급제</option><option value="FIVE_LEVEL">5등급제</option></select><input aria-label={`${index + 1}행 등급`} type="number" min="1" max={course.gradeScale === 'FIVE_LEVEL' ? 5 : 9} required value={course.grade ?? ''} onChange={(event) => onChange({ grade: Number(event.target.value) })} /></>}
         <input aria-label={`${index + 1}행 단위수`} type="number" min="0.01" step="0.01" required value={course.credits} onChange={(event) => onChange({ credits: Number(event.target.value) })} />
         <div className="course-flags"><label><input type="checkbox" checked={course.careerSubject} onChange={(event) => onChange({ careerSubject: event.target.checked })} />진로</label><label><input type="checkbox" checked={course.professionalCourse} onChange={(event) => onChange({ professionalCourse: event.target.checked })} />전문</label></div>
         <button className="remove-button" type="button" aria-label={`${index + 1}행 삭제`} disabled={count === 1} onClick={onRemove}>×</button>
@@ -889,6 +914,7 @@ function CourseRow({ index, course, count, rule, onChange, onRemove }: {
           <label>수강자수<input type="number" min="1" value={course.studentCount ?? ''} onChange={(event) => onChange({ studentCount: Number(event.target.value) })} /></label>
         </div>
       )}
+      {inputMode === 'RANK' && <div className="z-score-fields"><span>구교육과정 석차 입력</span><label>석차<input type="number" min="1" required value={course.rankPosition ?? ''} onChange={(event) => onChange({ rankPosition: Number(event.target.value) })} /></label><label>동석차 인원<input type="number" min="1" value={course.tiedRankCount ?? ''} onChange={(event) => onChange({ tiedRankCount: event.target.value ? Number(event.target.value) : null })} /></label><label>재적수<input type="number" min="1" required value={course.studentCount ?? ''} onChange={(event) => onChange({ studentCount: Number(event.target.value) })} /></label></div>}
     </div>
   );
 }
@@ -900,7 +926,7 @@ function RuleForm({ universities, pending, initialValues, onSubmit }: {
   onSubmit: (request: CreateEvaluationRuleRequest) => void;
 }) {
   const [rule, setRule] = useState<CreateEvaluationRuleRequest>({ ...baseRule, ...initialValues });
-  const updateArray = (field: 'gradeWeights' | 'subjectWeights' | 'gradeScores' | 'achievementGrades' | 'achievementScores' | 'subjectPriorities', index: number, value: number) => {
+  const updateArray = (field: 'gradeWeights' | 'subjectWeights' | 'gradeScores' | 'achievementGrades' | 'achievementScores' | 'legacyAchievementGrades' | 'subjectPriorities', index: number, value: number) => {
     setRule((current) => ({ ...current, [field]: current[field].map((item, itemIndex) => itemIndex === index ? value : item) }));
   };
   const submit = (event: FormEvent) => {
@@ -923,6 +949,7 @@ function RuleForm({ universities, pending, initialValues, onSubmit }: {
         <label>지원자격 최소 과목<input type="number" min="0" value={rule.minimumCourseCount} onChange={(event) => setRule({ ...rule, minimumCourseCount: Number(event.target.value) })} /></label>
         <label>점수 집계<select value={rule.scoreAggregation} onChange={(event) => setRule({ ...rule, scoreAggregation: event.target.value as CreateEvaluationRuleRequest['scoreAggregation'] })}><option value="COURSE_SCORE_AVERAGE">과목별 환산 후 평균</option><option value="AVERAGE_GRADE_THEN_SCORE">평균등급 산출 후 환산</option></select></label>
         <label>성취도 환산<select value={rule.achievementConversion} onChange={(event) => setRule({ ...rule, achievementConversion: event.target.value as CreateEvaluationRuleRequest['achievementConversion'] })}><option value="DIRECT_TABLE">A/B/C 직접 환산표</option><option value="Z_SCORE">원점수·평균·표준편차 Z점수</option><option value="EXCLUDE">성취도 과목 제외</option></select></label>
+        <label>기본 등급제<select value={rule.inputGradeScale} onChange={(event) => setRule({ ...rule, inputGradeScale: event.target.value as CreateEvaluationRuleRequest['inputGradeScale'] })}><option value="NINE_LEVEL">9등급제</option><option value="FIVE_LEVEL">5등급제</option><option value="LEGACY">구교육과정</option></select></label>
         <label>최종점수 배율<input type="number" min="0.0001" step="0.0001" value={rule.scoreMultiplier} onChange={(event) => setRule({ ...rule, scoreMultiplier: Number(event.target.value) })} /></label>
       </div>
 
@@ -932,6 +959,7 @@ function RuleForm({ universities, pending, initialValues, onSubmit }: {
 
       <div className="score-grid"><strong>석차등급 환산점수</strong>{rule.gradeScores.map((value, index) => <label key={index}>{index + 1}등급<input type="number" min="0" step="0.0001" value={value} onChange={(event) => updateArray('gradeScores', index, Number(event.target.value))} /></label>)}</div>
       <div className="achievement-grid"><strong>성취도 환산</strong>{['A', 'B', 'C'].map((level, index) => <div key={level}><span>{level}</span><label>환산등급<input type="number" min="1" max="9" step="0.01" value={rule.achievementGrades[index]} onChange={(event) => updateArray('achievementGrades', index, Number(event.target.value))} /></label><label>환산점수<input type="number" min="0" step="0.0001" value={rule.achievementScores[index]} onChange={(event) => updateArray('achievementScores', index, Number(event.target.value))} /></label></div>)}</div>
+      <div className="score-grid"><strong>수·우·미·양·가 환산등급</strong>{['수', '우', '미', '양', '가'].map((level, index) => <label key={level}>{level}<input type="number" min="1" max="9" step="0.01" value={rule.legacyAchievementGrades[index]} onChange={(event) => updateArray('legacyAchievementGrades', index, Number(event.target.value))} /></label>)}</div>
 
       <div className="rule-fields source-fields">
         <label>근거 모집요강<input value={rule.sourceDocument ?? ''} onChange={(event) => setRule({ ...rule, sourceDocument: event.target.value })} placeholder="파일명" /></label>

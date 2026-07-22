@@ -69,6 +69,14 @@ export interface CalculateApplicationScoreRequest {
   bonusScore: number | null;
 }
 
+export interface ScoreCalculationStep {
+  key: string;
+  description: string;
+  formula: string;
+  operands: Record<string, number>;
+  result: number;
+}
+
 export interface ApplicationScore {
   scoreRunId: number;
   createdAt: string;
@@ -95,6 +103,7 @@ export interface ApplicationScore {
   pendingComponents: string[];
   ineligibilityReasons: string[];
   warnings: string[];
+  calculationSteps: ScoreCalculationStep[];
   gradeVerification: GradeVerification | null;
 }
 

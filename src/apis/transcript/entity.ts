@@ -2,7 +2,29 @@ import type { AchievementLevel, CourseGrade, SubjectCategory } from '@/apis/eval
 
 export type EducationBackground = 'DOMESTIC_HIGH_SCHOOL' | 'GED' | 'FOREIGN_HIGH_SCHOOL';
 export type GraduationStatus = 'EXPECTED_GRADUATE' | 'GRADUATE';
-export type HighSchoolType = 'GENERAL' | 'SPECIALIZED' | 'COMPREHENSIVE_VOCATIONAL' | 'LIFELONG_EDUCATION_FACILITY';
+export type HighSchoolType = 'GENERAL' | 'SPECIALIZED' | 'COMPREHENSIVE_VOCATIONAL' | 'LIFELONG_EDUCATION_FACILITY' | 'TWO_YEAR';
+export type GradeScale = 'NINE_LEVEL' | 'FIVE_LEVEL' | 'LEGACY';
+export type LegacyAchievement = 'SU' | 'WOO' | 'MI' | 'YANG' | 'GA';
+export type GedSubjectType = 'KOREAN' | 'ENGLISH' | 'MATH' | 'KOREAN_HISTORY' | 'SOCIAL' | 'SCIENCE' | 'ELECTIVE';
+export type LegacySummaryType = 'SEMESTER' | 'YEAR';
+
+export interface GedSubjectScore {
+  id?: number;
+  subjectType: GedSubjectType;
+  subjectName: string;
+  score: number;
+}
+
+export interface LegacyGradeSummary {
+  id?: number;
+  summaryType: LegacySummaryType;
+  schoolYear: number;
+  semester: number | null;
+  rankPosition: number;
+  tiedRankCount: number | null;
+  cohortSize: number;
+  credits: number;
+}
 
 export interface StudentAttendance {
   schoolYear: number;
@@ -53,11 +75,15 @@ export interface TranscriptCourse {
   subjectCategory: SubjectCategory;
   courseName: string;
   grade: number | null;
+  gradeScale: GradeScale;
   achievement: AchievementLevel | null;
   rawScore: number | null;
   meanScore: number | null;
   standardDeviation: number | null;
   studentCount: number | null;
+  rankPosition: number | null;
+  tiedRankCount: number | null;
+  legacyAchievement: LegacyAchievement | null;
   credits: number;
   careerSubject: boolean;
   professionalCourse: boolean;
@@ -75,6 +101,8 @@ export interface StudentTranscript {
   highSchoolType: HighSchoolType;
   graduationStatus: GraduationStatus;
   gedAverageScore: number | null;
+  gedSubjectScores: GedSubjectScore[];
+  legacyGradeSummaries: LegacyGradeSummary[];
   attendance: StudentAttendance[];
   schoolViolenceActions: StudentSchoolViolenceAction[];
   courses: TranscriptCourse[];
@@ -142,6 +170,8 @@ export interface UpdateStudentCommonDataRequest {
   highSchoolType: HighSchoolType;
   graduationStatus: GraduationStatus;
   gedAverageScore: number | null;
+  gedSubjectScores: Array<Omit<GedSubjectScore, 'id'>>;
+  legacyGradeSummaries: Array<Omit<LegacyGradeSummary, 'id'>>;
   attendance: StudentAttendance[];
   schoolViolenceActions: Array<Omit<StudentSchoolViolenceAction, 'id' | 'note'> & { note: string }>;
 }
@@ -154,11 +184,15 @@ export const toCourseGrade = (course: TranscriptCourse): CourseGrade => ({
   subjectCategory: course.subjectCategory,
   courseName: course.courseName,
   grade: course.grade,
+  gradeScale: course.gradeScale,
   achievement: course.achievement,
   rawScore: course.rawScore,
   meanScore: course.meanScore,
   standardDeviation: course.standardDeviation,
   studentCount: course.studentCount,
+  rankPosition: course.rankPosition,
+  tiedRankCount: course.tiedRankCount,
+  legacyAchievement: course.legacyAchievement,
   careerSubject: course.careerSubject,
   professionalCourse: course.professionalCourse,
   credits: course.credits,

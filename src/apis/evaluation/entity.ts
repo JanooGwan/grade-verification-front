@@ -6,6 +6,8 @@ export type AchievementLevel = 'A' | 'B' | 'C' | 'D' | 'E';
 export type RoundingMode = 'HALF_UP' | 'DOWN' | 'UP' | 'FLOOR' | 'CEILING';
 export type EvaluationRuleStatus = 'DRAFT' | 'VERIFIED' | 'PUBLISHED' | 'RETIRED';
 export type RuleExtractionStatus = 'EXTRACTED' | 'DRAFT_CREATED';
+export type GradeScale = 'NINE_LEVEL' | 'FIVE_LEVEL' | 'LEGACY';
+export type LegacyAchievement = 'SU' | 'WOO' | 'MI' | 'YANG' | 'GA';
 
 export interface EvaluationRule {
   id: number;
@@ -25,6 +27,8 @@ export interface EvaluationRule {
   minimumCourseCount: number;
   scoreAggregation: ScoreAggregation;
   achievementConversion: AchievementConversion;
+  inputGradeScale: GradeScale;
+  legacyAchievementGrades: number[];
   includeThirdYearSecondSemester: boolean;
   includeThirdYearSecondSemesterForGraduates: boolean;
   includeProfessionalCourses: boolean;
@@ -129,11 +133,15 @@ export interface CourseGrade {
   subjectCategory: SubjectCategory;
   courseName: string;
   grade: number | null;
+  gradeScale: GradeScale;
   achievement: AchievementLevel | null;
   rawScore: number | null;
   meanScore: number | null;
   standardDeviation: number | null;
   studentCount: number | null;
+  rankPosition: number | null;
+  tiedRankCount: number | null;
+  legacyAchievement: LegacyAchievement | null;
   careerSubject: boolean;
   professionalCourse: boolean;
   credits: number;
@@ -158,6 +166,7 @@ export interface GradeVerification {
   calculationSummary: CalculationSummary | null;
   calculations: Array<CourseGrade & {
     appliedSubjectCategory: SubjectCategory | null;
+    rankPercentile: number | null;
     convertedScore: number | null;
     effectiveGrade: number | null;
     gradeWeight: number;

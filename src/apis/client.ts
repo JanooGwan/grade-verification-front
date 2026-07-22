@@ -1,4 +1,5 @@
 const BASE_URL = import.meta.env.VITE_API_PATH;
+const ADMIN_API_KEY = import.meta.env.VITE_ADMIN_API_KEY;
 
 if (!BASE_URL) {
   throw new Error('VITE_API_PATH 환경변수가 설정되지 않았습니다.');
@@ -55,6 +56,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     ...requestInit,
     headers: {
       ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+      ...(ADMIN_API_KEY ? { 'X-Admin-Key': ADMIN_API_KEY } : {}),
       ...headers,
     },
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -73,7 +75,11 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
 }
 
 async function requestForm<T>(endpoint: string, formData: FormData): Promise<T> {
-  const response = await fetch(joinUrl(BASE_URL, endpoint), { method: 'POST', body: formData });
+  const response = await fetch(joinUrl(BASE_URL, endpoint), {
+    method: 'POST',
+    headers: ADMIN_API_KEY ? { 'X-Admin-Key': ADMIN_API_KEY } : undefined,
+    body: formData,
+  });
   if (!response.ok) {
     const errorResponse = await parseErrorResponse(response);
     throw new ApiError(response.status, errorResponse?.message ?? 'API 요청에 실패했습니다.', errorResponse);

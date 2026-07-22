@@ -330,6 +330,20 @@ function ApplicationScoreDetail({ result }: { result: ApplicationScore }) {
       {result.pendingComponents.map((component) => <p className="verification-warning" key={component}>보류: {component}</p>)}
       {result.ineligibilityReasons.map((reason) => <p className="error-banner" key={reason}>{reason}</p>)}
       {result.warnings.map((warning) => <p className="verification-warning" key={warning}>참고: {warning}</p>)}
+      {result.calculationSteps.length > 0 && (
+        <details className="application-score-trace">
+          <summary>전형 점수 중간 계산값</summary>
+          {result.calculationSteps.map((step) => (
+            <div className="verification-facts" key={step.key}>
+              <span><b>{step.description}</b><small>{step.formula}</small></span>
+              {Object.entries(step.operands).map(([name, value]) => (
+                <span key={`${step.key}-${name}`}><small>{name}</small><b>{value}</b></span>
+              ))}
+              <span><small>계산 결과</small><b>{step.result}</b></span>
+            </div>
+          ))}
+        </details>
+      )}
       {result.gradeVerification && <VerificationDetail result={result.gradeVerification} />}
     </section>
   );
