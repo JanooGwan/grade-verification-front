@@ -760,6 +760,7 @@ h2 {
 .import-preview-summary span { padding: 6px 8px; border-radius: 7px; background: white; font-size: .7rem; }
 .import-preview-summary .has-error { color: #9a3c2d; background: #f9e6e2; }
 .import-preview-summary button { margin-left: auto; border: 0; border-radius: 8px; color: white; background: #173f2a; font-weight: 800; }
+.import-preview-summary button + button { margin-left: 0; }
 .import-errors { max-height: 150px; overflow-y: auto; margin-top: 8px; padding: 9px; border-radius: 9px; background: #fff0ed; }
 .import-errors p { margin: 3px 0; color: #8c4036; font-size: .68rem; }
 .import-sample-table { margin-top: 9px; overflow-x: auto; }

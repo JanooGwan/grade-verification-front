@@ -31,6 +31,14 @@ export const previewTranscriptExcel = (admissionYear: number, universityId: numb
   return apiClient.postForm<TranscriptPreview>('/api/transcripts/imports/excel/preview', form);
 };
 
+export const exportTranscriptValidationExcel = (admissionYear: number, universityId: number, file: File) => {
+  const form = new FormData();
+  form.append('admissionYear', String(admissionYear));
+  form.append('universityId', String(universityId));
+  form.append('file', file);
+  return apiClient.postFormBlob('/api/transcripts/imports/excel/preview/export', form);
+};
+
 export const importTranscriptExcel = (admissionYear: number, universityId: number, mode: TranscriptImportMode, file: File) => {
   const form = new FormData();
   form.append('admissionYear', String(admissionYear));
