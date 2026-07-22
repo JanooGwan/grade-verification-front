@@ -114,6 +114,8 @@ export type TranscriptImportMode = 'VALID_ROWS_ONLY' | 'ALL_OR_NOTHING';
 export interface TranscriptPreview {
   originalFileName: string;
   fileSha256: string;
+  sourceFormat: 'STANDARD_TRANSCRIPT_V1' | 'HANSHIN_MULTI_SHEET_V1';
+  applicationRows: number;
   totalRows: number;
   validRows: number;
   invalidRows: number;
@@ -130,11 +132,13 @@ export interface TranscriptPreview {
     credits: number;
   }>;
   errors: Array<{ rowNumber: number; message: string }>;
+  warnings: string[];
 }
 
 export interface TranscriptImportResult {
   importId: number;
   status: 'COMPLETED' | 'COMPLETED_WITH_ERRORS';
+  sourceFormat: 'STANDARD_TRANSCRIPT_V1' | 'HANSHIN_MULTI_SHEET_V1';
   totalRows: number;
   importedRows: number;
   failedRows: number;
@@ -142,7 +146,12 @@ export interface TranscriptImportResult {
   updatedStudents: number;
   createdCourses: number;
   updatedCourses: number;
+  applicationRows: number;
+  createdApplications: number;
+  createdAdmissionTracks: number;
+  createdRecruitmentUnits: number;
   errors: Array<{ rowNumber: number; message: string }>;
+  warnings: string[];
 }
 
 export interface TranscriptImportHistory {

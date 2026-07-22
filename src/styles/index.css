@@ -750,7 +750,7 @@ h2 {
 .transcript-import-panel summary span, .student-data-editor summary span { display: flex; flex-direction: column; gap: 2px; }
 .transcript-import-panel summary small, .student-data-editor summary small { color: #738078; font-size: .68rem; font-weight: 500; }
 .transcript-import-panel summary i, .student-data-editor summary i { color: #2d754d; font-size: .68rem; font-style: normal; font-weight: 800; }
-.transcript-import-form { display: grid; grid-template-columns: 120px 1.5fr 1fr auto auto; gap: 9px; align-items: end; padding: 0 18px 16px; }
+.transcript-import-form { display: grid; grid-template-columns: 110px 1.2fr 1.5fr 1fr auto auto; gap: 9px; align-items: end; padding: 0 18px 16px; }
 .transcript-import-form label, .student-profile-form label, .student-common-data-form label, .course-editor-form label { display: flex; flex-direction: column; gap: 5px; color: #536158; font-size: .68rem; font-weight: 750; }
 .transcript-import-form input, .transcript-import-form select, .student-profile-form input, .student-common-data-form input, .student-common-data-form select, .course-editor-form input, .course-editor-form select { min-width: 0; min-height: 40px; padding: 0 9px; border: 1px solid #cad4cd; border-radius: 9px; background: white; }
 .transcript-import-form button, .student-profile-form button, .student-common-data-form button, .course-editor-form button { min-height: 40px; padding: 0 11px; border: 0; border-radius: 9px; color: white; background: #285f40; font-size: .7rem; font-weight: 800; }

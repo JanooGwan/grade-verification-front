@@ -23,17 +23,19 @@ export const getStudentTranscript = (admissionYear: number, applicantNumber: str
     `/api/transcripts/students/${encodeURIComponent(applicantNumber)}?admissionYear=${admissionYear}`,
   );
 
-export const previewTranscriptExcel = (admissionYear: number, file: File) => {
+export const previewTranscriptExcel = (admissionYear: number, universityId: number, file: File) => {
   const form = new FormData();
   form.append('admissionYear', String(admissionYear));
+  form.append('universityId', String(universityId));
   form.append('file', file);
   return apiClient.postForm<TranscriptPreview>('/api/transcripts/imports/excel/preview', form);
 };
 
-export const importTranscriptExcel = (admissionYear: number, mode: TranscriptImportMode, file: File) => {
+export const importTranscriptExcel = (admissionYear: number, universityId: number, mode: TranscriptImportMode, file: File) => {
   const form = new FormData();
   form.append('admissionYear', String(admissionYear));
   form.append('mode', mode);
+  form.append('universityId', String(universityId));
   form.append('file', file);
   return apiClient.postForm<TranscriptImportResult>('/api/transcripts/imports/excel', form);
 };
