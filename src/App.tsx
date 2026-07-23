@@ -1,35 +1,31 @@
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
-import EvaluationPage from '@/pages/evaluation/EvaluationPage';
 import RulesPage from '@/pages/rules/RulesPage';
 import StudentPage from '@/pages/student/StudentPage';
 import UniversityPage from '@/pages/university/UniversityPage';
-import type { StudentTranscript } from '@/apis/transcript/entity';
 import OperationsPage from '@/pages/operation/OperationsPage';
 import AssistantPage from '@/pages/assistant/AssistantPage';
 
-type Page = 'rules' | 'evaluation' | 'students' | 'university' | 'operations' | 'assistant';
+type Page = 'rules' | 'students' | 'university' | 'operations' | 'assistant';
 
 const navigation: Array<{ page: Page; path: string; label: string; description: string }> = [
   { page: 'rules', path: '/rules', label: '규칙 관리', description: 'PDF·검수' },
-  { page: 'evaluation', path: '/evaluation', label: '성적 검증', description: '환산 계산' },
-  { page: 'students', path: '/students', label: '학생 관리', description: '지원자·학생부' },
+  { page: 'students', path: '/students', label: '학생 관리', description: 'Excel 일괄 검증' },
   { page: 'university', path: '/universities', label: '대학교 관리', description: '기준정보' },
   { page: 'operations', path: '/operations', label: '운영 현황', description: '상태·로그' },
   { page: 'assistant', path: '/assistant', label: 'AI 도우미', description: 'DB 질의·답변' },
 ];
 
 function pageFromPath(pathname: string): Page {
-  return navigation.find((item) => item.path === pathname)?.page ?? 'evaluation';
+  return navigation.find((item) => item.path === pathname)?.page ?? 'students';
 }
 
 export default function App() {
   const [page, setPage] = useState<Page>(() => pageFromPath(window.location.pathname));
-  const [verificationStudent, setVerificationStudent] = useState<StudentTranscript | null>(null);
   const currentNavigationRef = useRef<HTMLAnchorElement | null>(null);
 
   useEffect(() => {
     if (!navigation.some((item) => item.path === window.location.pathname)) {
-      window.history.replaceState({}, '', '/evaluation');
+      window.history.replaceState({}, '', '/students');
     }
     const handlePopState = () => setPage(pageFromPath(window.location.pathname));
     window.addEventListener('popstate', handlePopState);
@@ -80,16 +76,7 @@ export default function App() {
       </aside>
       <div className="app-content">
         {page === 'rules' && <RulesPage />}
-        {page === 'evaluation' && (
-          <EvaluationPage
-            key={verificationStudent ? `${verificationStudent.studentId}-${verificationStudent.courses.length}` : 'manual'}
-            initialTranscript={verificationStudent}
-          />
-        )}
-        {page === 'students' && <StudentPage onVerify={(transcript) => {
-          setVerificationStudent(transcript);
-          navigate('evaluation');
-        }} />}
+        {page === 'students' && <StudentPage />}
         {page === 'university' && <UniversityPage />}
         {page === 'operations' && <OperationsPage />}
         {page === 'assistant' && <AssistantPage />}

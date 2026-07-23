@@ -132,6 +132,21 @@ export interface TranscriptPreview {
     achievement: AchievementLevel | null;
     credits: number;
   }>;
+  verification: {
+    totalApplications: number;
+    successfulApplications: number;
+    failedApplications: number;
+    sampleResults: Array<{
+      applicationRowNumber: number;
+      applicantNumber: string;
+      studentName: string;
+      admissionTrackName: string;
+      recruitmentUnitName: string;
+      finalScore: number;
+      averageGrade: number;
+      includedCourseCount: number;
+    }>;
+  } | null;
   errors: Array<{ rowNumber: number; reason: string }>;
   warnings: string[];
 }
