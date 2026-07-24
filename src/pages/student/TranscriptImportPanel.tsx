@@ -61,7 +61,7 @@ export default function TranscriptImportPanel({
     event.preventDefault();
     if (file) preview.mutate();
   };
-  const error = preview.error ?? exporter.error ?? importer.error ?? history.error;
+  const error = preview.error ?? exporter.error ?? importer.error ?? universities.error ?? history.error;
   const verification = preview.data?.verification;
 
   return (
@@ -86,6 +86,8 @@ export default function TranscriptImportPanel({
             onChange={(event) => {
               onAdmissionYearChange(Number(event.target.value));
               preview.reset();
+              exporter.reset();
+              importer.reset();
             }}
           />
         </label>
@@ -94,9 +96,12 @@ export default function TranscriptImportPanel({
           <select
             id="transcript-university"
             value={universityId || ''}
+            disabled={importer.isPending}
             onChange={(event) => {
               setUniversityId(Number(event.target.value));
               preview.reset();
+              exporter.reset();
+              importer.reset();
             }}
           >
             <option value="">선택</option>
@@ -221,11 +226,23 @@ export default function TranscriptImportPanel({
       )}
 
       {importer.data && (
-        <p className="import-success">
-          가져오기 #{importer.data.importId}: 학생 {importer.data.createdStudents}명 생성, 지원정보{' '}
-          {importer.data.createdApplications}건 생성, 과목 {importer.data.createdCourses}건 생성·
-          {importer.data.updatedCourses}건 수정, {importer.data.skippedRows}건 제외
-        </p>
+        <div className={`import-success${importer.data.status === 'COMPLETED_WITH_ERRORS' ? ' import-success--partial' : ''}`}>
+          <p>
+            가져오기 #{importer.data.importId}: 학생 {importer.data.createdStudents}명 생성, 지원정보{' '}
+            {importer.data.createdApplications}건 생성, 과목 {importer.data.createdCourses}건 생성·
+            {importer.data.updatedCourses}건 수정, {importer.data.skippedRows}건 제외
+          </p>
+          {importer.data.status === 'COMPLETED_WITH_ERRORS' && (
+            <>
+              <strong>일부 행을 가져오지 못했습니다. 실패 {importer.data.failedRows}건</strong>
+              <div className="import-errors">
+                {importer.data.errors.map((item) => (
+                  <p key={`${item.rowNumber}-${item.reason}`}><b>{item.rowNumber}행</b> {item.reason}</p>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       )}
 
       <div className="import-history">

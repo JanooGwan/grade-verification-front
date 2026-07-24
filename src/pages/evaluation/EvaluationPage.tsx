@@ -935,7 +935,16 @@ function RuleForm({ universities, pending, initialValues, onSubmit }: {
   };
   return (
     <form className="evaluation-card rule-form" onSubmit={submit}>
-      <div className="rule-form-title"><div><p className="section-step">RULE SETUP</p><h2>모집요강 반영 규칙 등록</h2></div><div className="preset-list">{presets.map((preset) => <button type="button" key={preset.label} onClick={() => setRule((current) => ({ ...current, ...preset.values }))}>{preset.label}</button>)}</div></div>
+      <div className="rule-form-title"><div><p className="section-step">RULE SETUP</p><h2>모집요강 반영 규칙 등록</h2></div><div className="preset-list">{presets.map((preset) => <button type="button" key={preset.label} onClick={() => setRule((current) => ({
+        ...baseRule,
+        universityId: current.universityId,
+        name: current.name,
+        admissionYear: current.admissionYear,
+        admissionType: current.admissionType,
+        recruitmentUnit: current.recruitmentUnit,
+        version: current.version,
+        ...preset.values,
+      }))}>{preset.label}</button>)}</div></div>
       <div className="rule-fields">
         <label>대학교<select required value={rule.universityId} onChange={(event) => setRule({ ...rule, universityId: Number(event.target.value) })}><option value={0}>선택</option>{universities.map((university) => <option key={university.id} value={university.id}>{university.name}</option>)}</select></label>
         <label>규칙명<input required value={rule.name} onChange={(event) => setRule({ ...rule, name: event.target.value })} placeholder="2027 교과우수자 공학계열" /></label>

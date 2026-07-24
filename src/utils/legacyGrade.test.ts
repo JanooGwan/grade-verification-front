@@ -14,5 +14,11 @@ describe('구교육과정 입력 사전 검증', () => {
     expect(['SU', 'WOO', 'MI', 'YANG', 'GA'].map((value) =>
       legacyAchievementGrade(value as 'SU' | 'WOO' | 'MI' | 'YANG' | 'GA'))).toEqual([1, 3, 5, 7, 9]);
   });
-});
 
+  it('유한한 백분율과 0 이상의 정수 자릿수만 허용한다', () => {
+    expect(() => percentileGrade(Number.NaN)).toThrow();
+    expect(() => percentileGrade(Number.POSITIVE_INFINITY)).toThrow();
+    expect(() => rankPercentile(1, null, 10, -1)).toThrow();
+    expect(() => rankPercentile(1, null, 10, 1.5)).toThrow();
+  });
+});

@@ -789,6 +789,9 @@ h2 {
 .verification-empty-state { min-height: 120px; border: 1px dashed #cdd9d0; border-radius: 10px; }
 .verification-preview__note { margin: 9px 2px 0; color: #657269; font-size: .68rem; text-align: right; }
 .import-success { margin: 0 18px 14px; padding: 10px; border-radius: 9px; color: #22613e; background: #e0f0e5; font-size: .72rem; }
+.import-success > p { margin: 0; }
+.import-success--partial { color: #8c4036; background: #fff0ed; }
+.import-success--partial > strong { display: block; margin-top: 8px; }
 .import-history { display: flex; flex-wrap: wrap; gap: 7px; padding-top: 12px; border-top: 1px solid #e2e9e3; }
 .import-history > strong { width: 100%; font-size: .72rem; }
 .import-history span { display: flex; min-width: 180px; flex: 1; flex-direction: column; padding: 8px; border-radius: 8px; background: #f4f6f4; font-size: .64rem; }
