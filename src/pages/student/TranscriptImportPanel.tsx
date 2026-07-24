@@ -97,6 +97,7 @@ export default function TranscriptImportPanel({
               importer.reset();
             }}
           />
+          <small>검증할 모집요강 연도입니다. 과거 지원자 파일을 검증할 때는 원본 입학연도와 달라도 됩니다.</small>
         </label>
         <label htmlFor="transcript-university">
           대상 대학교
