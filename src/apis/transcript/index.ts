@@ -23,28 +23,47 @@ export const getStudentTranscript = (admissionYear: number, applicantNumber: str
     `/api/transcripts/students/${encodeURIComponent(applicantNumber)}?admissionYear=${admissionYear}`,
   );
 
-export const previewTranscriptExcel = (admissionYear: number, universityId: number, file: File) => {
+export const previewTranscriptExcel = (
+  admissionYear: number,
+  universityId: number,
+  file: File,
+  schoolInfoFile?: File | null,
+) => {
   const form = new FormData();
   form.append('admissionYear', String(admissionYear));
   form.append('universityId', String(universityId));
   form.append('file', file);
+  if (schoolInfoFile) form.append('schoolInfoFile', schoolInfoFile);
   return apiClient.postForm<TranscriptPreview>('/api/transcripts/imports/excel/preview', form);
 };
 
-export const exportTranscriptValidationExcel = (admissionYear: number, universityId: number, file: File) => {
+export const exportTranscriptValidationExcel = (
+  admissionYear: number,
+  universityId: number,
+  file: File,
+  schoolInfoFile?: File | null,
+) => {
   const form = new FormData();
   form.append('admissionYear', String(admissionYear));
   form.append('universityId', String(universityId));
   form.append('file', file);
+  if (schoolInfoFile) form.append('schoolInfoFile', schoolInfoFile);
   return apiClient.postFormBlob('/api/transcripts/imports/excel/preview/export', form);
 };
 
-export const importTranscriptExcel = (admissionYear: number, universityId: number, mode: TranscriptImportMode, file: File) => {
+export const importTranscriptExcel = (
+  admissionYear: number,
+  universityId: number,
+  mode: TranscriptImportMode,
+  file: File,
+  schoolInfoFile?: File | null,
+) => {
   const form = new FormData();
   form.append('admissionYear', String(admissionYear));
   form.append('mode', mode);
   form.append('universityId', String(universityId));
   form.append('file', file);
+  if (schoolInfoFile) form.append('schoolInfoFile', schoolInfoFile);
   return apiClient.postForm<TranscriptImportResult>('/api/transcripts/imports/excel', form);
 };
 

@@ -29,15 +29,20 @@ export default function TranscriptImportPanel({
 }) {
   const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
+  const [schoolInfoFile, setSchoolInfoFile] = useState<File | null>(null);
   const [mode, setMode] = useState<TranscriptImportMode>('ALL_OR_NOTHING');
   const [universityId, setUniversityId] = useState(0);
   const universities = useQuery(universityQueries.list());
   const history = useQuery(transcriptQueries.imports());
   const preview = useMutation({
-    mutationFn: () => previewTranscriptExcel(admissionYear, universityId, file as File),
+    mutationFn: () => previewTranscriptExcel(
+      admissionYear, universityId, file as File, schoolInfoFile,
+    ),
   });
   const exporter = useMutation({
-    mutationFn: () => exportTranscriptValidationExcel(admissionYear, universityId, file as File),
+    mutationFn: () => exportTranscriptValidationExcel(
+      admissionYear, universityId, file as File, schoolInfoFile,
+    ),
     onSuccess: (result) => {
       const url = URL.createObjectURL(result);
       const link = document.createElement('a');
@@ -51,7 +56,9 @@ export default function TranscriptImportPanel({
     },
   });
   const importer = useMutation({
-    mutationFn: () => importTranscriptExcel(admissionYear, universityId, mode, file as File),
+    mutationFn: () => importTranscriptExcel(
+      admissionYear, universityId, mode, file as File, schoolInfoFile,
+    ),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: transcriptQueryKeys.all });
     },
@@ -134,6 +141,21 @@ export default function TranscriptImportPanel({
             <option value="ALL_OR_NOTHING">오류 시 전체 취소</option>
             <option value="VALID_ROWS_ONLY">정상 행만 저장</option>
           </select>
+        </label>
+        <label htmlFor="transcript-school-info-file">
+          지원자 추가정보 Excel (선택)
+          <input
+            id="transcript-school-info-file"
+            type="file"
+            accept=".xlsx,.xls"
+            onChange={(event) => {
+              setSchoolInfoFile(event.target.files?.[0] ?? null);
+              preview.reset();
+              exporter.reset();
+              importer.reset();
+            }}
+          />
+          <small>특성화고·종합고 전문계열·학력인정 시설의 출신고교 유형을 판정합니다.</small>
         </label>
         <button disabled={!file || !universityId || preview.isPending}>
           {preview.isPending ? '분석 중…' : '미리보기'}
