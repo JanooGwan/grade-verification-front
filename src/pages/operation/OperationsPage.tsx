@@ -26,12 +26,12 @@ export default function OperationsPage() {
       <section className="ops-metric-grid">
         <Metric label="학생" value={data?.students} detail={`${data?.transcriptCourses ?? 0}개 과목`} />
         <Metric label="지원" value={data?.studentApplications} detail={`${data?.verificationRuns ?? 0}회 검증`} />
-        <Metric label="모집요강" value={data?.ruleExtractions} detail={`${data?.rules.published ?? 0}개 게시 규칙`} />
+        <Metric label="모집요강" value={data?.ruleExtractions} detail={`${data?.rules.published ?? 0}개 게시 기준`} />
         <Metric label="API 요청" value={data?.http.totalRequests} detail={`오류율 ${errorRate}%`} accent />
       </section>
       <section className="ops-panels">
         <article className="ops-panel">
-          <div className="ops-panel-heading"><div><p className="section-step">RULE STATUS</p><h2>규칙 상태</h2></div></div>
+          <div className="ops-panel-heading"><div><p className="section-step">RULE STATUS</p><h2>반영 기준 상태</h2></div></div>
           <div className="ops-rule-bars">
             {data && Object.entries(data.rules).map(([status, count]) => <div key={status}><span>{status.toUpperCase()}</span><b>{count}</b></div>)}
           </div>

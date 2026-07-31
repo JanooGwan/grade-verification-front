@@ -278,11 +278,11 @@ export function RuleManagementPage() {
       <header className="evaluation-header">
         <div>
           <p className="eyebrow">Rule workspace</p>
-          <h1>규칙 관리</h1>
-          <p className="page-description">모집요강 PDF에서 규칙 초안을 추출하고 근거를 검수한 뒤 게시 상태를 관리합니다.</p>
+          <h1>대학별 반영 기준</h1>
+          <p className="page-description">대학·모집연도·전형별 성적 반영 기준을 모집요강에서 추출하고 근거를 검수해 게시합니다. 특수 전형 계산에는 시스템 정책이 함께 적용됩니다.</p>
         </div>
         <button className="outline-button" type="button" aria-expanded={showRuleForm} onClick={openManualRuleForm}>
-          {showRuleForm ? '규칙 등록 닫기' : '+ 반영 규칙 등록'}
+          {showRuleForm ? '기준 등록 닫기' : '+ 반영 기준 등록'}
         </button>
       </header>
 
@@ -338,7 +338,7 @@ export default function EvaluationPage({ initialTranscript }: { initialTranscrip
     setError('');
     setResult(null);
     if (!ruleId) {
-      setError('먼저 성적 반영 규칙을 선택해 주세요.');
+      setError('먼저 성적 반영 기준을 선택해 주세요.');
       return;
     }
     try {
@@ -371,16 +371,16 @@ export default function EvaluationPage({ initialTranscript }: { initialTranscrip
 
       <form onSubmit={handleVerify}>
         <section className="evaluation-card rule-picker">
-          <div><p className="section-step">STEP 1</p><h2>적용할 모집요강 규칙</h2></div>
-          <select aria-label="성적 반영 규칙" value={ruleId} onChange={(event) => setRuleId(Number(event.target.value))} disabled={rulesQuery.isLoading} required>
-            <option value={0}>{rulesQuery.isLoading ? '규칙을 불러오는 중…' : '규칙을 선택하세요'}</option>
+          <div><p className="section-step">STEP 1</p><h2>적용할 성적 반영 기준</h2></div>
+          <select aria-label="성적 반영 기준" value={ruleId} onChange={(event) => setRuleId(Number(event.target.value))} disabled={rulesQuery.isLoading} required>
+            <option value={0}>{rulesQuery.isLoading ? '반영 기준을 불러오는 중…' : '반영 기준을 선택하세요'}</option>
             {rulesQuery.data?.map((rule) => (
               <option key={rule.id} value={rule.id}>{rule.universityName} · {rule.admissionYear} · {rule.admissionType} · {rule.recruitmentUnit} (v{rule.version})</option>
             ))}
           </select>
           {selectedRule && <RuleSummary rule={selectedRule} />}
           {!rulesQuery.isLoading && rulesQuery.data?.length === 0 && (
-            <div className="rule-summary"><small>게시된 규칙이 없습니다. 규칙 관리에서 검수와 게시를 먼저 완료해 주세요.</small></div>
+            <div className="rule-summary"><small>게시된 반영 기준이 없습니다. 대학별 반영 기준에서 검수와 게시를 먼저 완료해 주세요.</small></div>
           )}
         </section>
 
@@ -517,7 +517,7 @@ function RuleLifecyclePanel({ universities, onApplyExtraction }: {
     const values: Partial<CreateEvaluationRuleRequest> = {
       universityId: extraction.universityId,
       admissionYear: extraction.admissionYear,
-      name: `${extraction.admissionYear} 모집요강 추출 규칙`,
+      name: `${extraction.admissionYear} 모집요강 추출 기준`,
       sourceDocument: extraction.originalFileName,
       sourcePages: candidate.sourcePages ?? '',
       interpretationNote: warningText,
@@ -562,7 +562,7 @@ function RuleLifecyclePanel({ universities, onApplyExtraction }: {
     try {
       const parsed = JSON.parse(bulkJson) as CreateEvaluationRuleRequest[] | { rules?: CreateEvaluationRuleRequest[] };
       const rules = Array.isArray(parsed) ? parsed : parsed.rules;
-      if (!rules?.length) throw new Error('규칙 배열이 없습니다.');
+      if (!rules?.length) throw new Error('반영 기준 배열이 없습니다.');
       bulkMutation.mutate(rules);
     } catch (jsonError) {
       setPanelError(jsonError instanceof Error ? jsonError.message : 'JSON 형식을 확인해 주세요.');
@@ -574,7 +574,7 @@ function RuleLifecyclePanel({ universities, onApplyExtraction }: {
   return (
     <section className="evaluation-card lifecycle-panel">
       <div className="lifecycle-heading">
-        <div><p className="section-step">RULE WORKFLOW</p><h2>규칙 검수 및 게시</h2></div>
+        <div><p className="section-step">RULE WORKFLOW</p><h2>반영 기준 검수 및 게시</h2></div>
         <label>상태 필터
           <select value={status} onChange={(event) => setStatus(event.target.value as EvaluationRuleStatus | '')}>
             <option value="">전체</option>
@@ -585,8 +585,8 @@ function RuleLifecyclePanel({ universities, onApplyExtraction }: {
 
       <div className="rule-concept">
         <div>
-          <strong>‘반영 규칙’이란?</strong>
-          <p>한 대학·전형·모집단위가 학생부 성적을 최종 점수로 바꾸는 계산 방법 전체를 뜻합니다.</p>
+          <strong>‘성적 반영 기준’이란?</strong>
+          <p>대학·모집연도·전형별로 어떤 성적을 선택하고 환산해 최종 점수에 반영할지 정한 기준입니다.</p>
         </div>
         <ol>
           <li><b>1</b><span>반영할 학년·학기·교과·과목 선택</span></li>
@@ -598,7 +598,7 @@ function RuleLifecyclePanel({ universities, onApplyExtraction }: {
 
       <form className="pdf-extraction" onSubmit={extractPdf}>
         <div className="pdf-extraction-copy">
-          <strong>모집요강에서 규칙 초안 추출</strong>
+          <strong>모집요강에서 반영 기준 초안 추출</strong>
           <p>PDF 전체를 읽되, 성적 반영 페이지의 근거가 확인된 값만 후보로 채웁니다. 결과는 자동 게시되지 않습니다.</p>
         </div>
         <label>대학교
@@ -628,7 +628,7 @@ function RuleLifecyclePanel({ universities, onApplyExtraction }: {
           </div>
         </div>
         <button type="submit" disabled={extractionMutation.isPending}>
-          {extractionMutation.isPending ? '전체 페이지 분석 중…' : '규칙 후보 추출'}
+          {extractionMutation.isPending ? '전체 페이지 분석 중…' : '반영 기준 추출'}
         </button>
       </form>
 
@@ -691,7 +691,7 @@ function RuleLifecyclePanel({ universities, onApplyExtraction }: {
               </details>
             </div>
           ) : (
-            <StatusPanel tone="empty" title="아직 추출된 규칙이 없습니다" description="대학과 PDF를 선택한 뒤 규칙 후보 추출을 실행해 주세요." />
+            <StatusPanel tone="empty" title="아직 추출된 반영 기준이 없습니다" description="대학과 PDF를 선택한 뒤 반영 기준 추출을 실행해 주세요." />
           )}
         </section>
       </div>
@@ -703,7 +703,7 @@ function RuleLifecyclePanel({ universities, onApplyExtraction }: {
           <button type="button" disabled={!compareIds[0] || !compareIds[1] || compareIds[0] === compareIds[1]} onClick={() => comparisonMutation.mutate()}>추출값 비교</button>
         </div>
         <div className="extraction-history-list">{extractionsQuery.data?.map((item) => <article key={item.extractionId}><span className={`confidence-chip ${item.overallConfidence < .75 ? 'is-low' : ''}`}>{Math.round(item.overallConfidence * 100)}%</span><strong>{item.originalFileName}</strong><small>{item.universityName} · {item.admissionYear} · {item.pageCount}p · 누락 {item.missingFieldCount} · 경고 {item.warningCount}</small><code>{item.fileSha256.slice(0, 12)}</code></article>)}</div>
-        {comparisonMutation.data && <div className="extraction-differences"><strong>변경 필드 {comparisonMutation.data.differences.length}개</strong>{comparisonMutation.data.differences.map((item) => <p key={item.field}><b>{item.field}</b><span>{item.leftValue}</span><i>→</i><span>{item.rightValue}</span></p>)}{comparisonMutation.data.differences.length === 0 && <p>추출된 주요 규칙 값이 동일합니다.</p>}</div>}
+        {comparisonMutation.data && <div className="extraction-differences"><strong>변경 필드 {comparisonMutation.data.differences.length}개</strong>{comparisonMutation.data.differences.map((item) => <p key={item.field}><b>{item.field}</b><span>{item.leftValue}</span><i>→</i><span>{item.rightValue}</span></p>)}{comparisonMutation.data.differences.length === 0 && <p>추출된 주요 반영 기준 값이 동일합니다.</p>}</div>}
       </details>
 
       <div className="review-inputs">
@@ -715,7 +715,7 @@ function RuleLifecyclePanel({ universities, onApplyExtraction }: {
 
       <div className="rule-admin-list">
         {adminRulesQuery.isLoading && (
-          <StatusPanel compact tone="loading" title="규칙 목록을 불러오는 중입니다" />
+          <StatusPanel compact tone="loading" title="반영 기준 목록을 불러오는 중입니다" />
         )}
         {adminRulesQuery.data?.map((rule) => {
           const expanded = expandedRuleId === rule.id;
@@ -749,22 +749,22 @@ function RuleLifecyclePanel({ universities, onApplyExtraction }: {
           );
         })}
         {!adminRulesQuery.isLoading && adminRulesQuery.data?.length === 0 && (
-          <StatusPanel compact tone="empty" title="해당 상태의 규칙이 없습니다" description="상태 필터를 변경하거나 새 규칙을 등록해 주세요." />
+          <StatusPanel compact tone="empty" title="해당 상태의 반영 기준이 없습니다" description="상태 필터를 변경하거나 새 반영 기준을 등록해 주세요." />
         )}
       </div>
 
       <details className="bulk-rule-import">
-        <summary>AI 추출 규칙 JSON 일괄 등록</summary>
-        <p>규칙 배열 또는 <code>{'{ "rules": [...] }'}</code> 형식을 붙여 넣으면 모두 초안으로 저장됩니다.</p>
-        <textarea value={bulkJson} onChange={(event) => setBulkJson(event.target.value)} placeholder='[{ "universityId": 1, "name": "2027 규칙", ... }]' />
+        <summary>AI 추출 반영 기준 JSON 일괄 등록</summary>
+        <p>반영 기준 배열 또는 <code>{'{ "rules": [...] }'}</code> 형식을 붙여 넣으면 모두 초안으로 저장됩니다.</p>
+        <textarea value={bulkJson} onChange={(event) => setBulkJson(event.target.value)} placeholder='[{ "universityId": 1, "name": "2027 반영 기준", ... }]' />
         <button type="button" disabled={bulkMutation.isPending || !bulkJson.trim()} onClick={importJson}>JSON 초안 등록</button>
       </details>
 
       <ConfirmDialog
         open={rulePendingRetirement !== null}
-        title="규칙을 폐기할까요?"
-        description={rulePendingRetirement ? `${rulePendingRetirement.universityName} · ${rulePendingRetirement.name} v${rulePendingRetirement.version} 규칙은 게시 대상으로 다시 사용할 수 없습니다.` : ''}
-        confirmLabel="규칙 폐기"
+        title="반영 기준을 폐기할까요?"
+        description={rulePendingRetirement ? `${rulePendingRetirement.universityName} · ${rulePendingRetirement.name} v${rulePendingRetirement.version} 기준은 게시 대상으로 다시 사용할 수 없습니다.` : ''}
+        confirmLabel="반영 기준 폐기"
         pending={actionMutation.isPending}
         danger
         onCancel={() => setRulePendingRetirement(null)}
@@ -796,7 +796,7 @@ function RuleDetail({ rule, id }: { rule: EvaluationRule; id: string }) {
     <div className="rule-detail" id={id}>
       <div className="rule-detail-intro">
         <div>
-          <p className="section-step">이 규칙은 이렇게 계산합니다</p>
+          <p className="section-step">이 기준은 이렇게 계산합니다</p>
           <strong>{strategyLabels[rule.selectionStrategy]}{rule.selectionCount > 0 ? ` ${rule.selectionCount}개` : ''}를 선택해 {aggregationLabels[rule.scoreAggregation]}합니다.</strong>
         </div>
         <span>최종 점수 × {rule.scoreMultiplier}</span>
@@ -834,7 +834,7 @@ function RuleDetail({ rule, id }: { rule: EvaluationRule; id: string }) {
           <h4>포함·제외 조건</h4>
           <ul className="rule-condition-list">
             <li className={rule.includeThirdYearSecondSemester ? 'is-included' : 'is-excluded'}>3학년 2학기 {rule.includeThirdYearSecondSemester ? '포함' : '제외'}</li>
-            <li className={rule.includeThirdYearSecondSemesterForGraduates ? 'is-included' : 'is-excluded'}>졸업생 3학년 2학기 {rule.includeThirdYearSecondSemesterForGraduates ? '포함' : '일반 규칙 적용'}
+            <li className={rule.includeThirdYearSecondSemesterForGraduates ? 'is-included' : 'is-excluded'}>졸업생 3학년 2학기 {rule.includeThirdYearSecondSemesterForGraduates ? '포함' : '일반 기준 적용'}
             </li>
             <li className={rule.includeProfessionalCourses ? 'is-included' : 'is-excluded'}>전문교과 {rule.includeProfessionalCourses ? '포함' : '제외'}</li>
           </ul>
@@ -949,7 +949,7 @@ function RuleForm({ universities, pending, initialValues, onSubmit }: {
   };
   return (
     <form className="evaluation-card rule-form" onSubmit={submit}>
-      <div className="rule-form-title"><div><p className="section-step">RULE SETUP</p><h2>모집요강 반영 규칙 등록</h2></div><div className="preset-list">{presets.map((preset) => <button type="button" key={preset.label} onClick={() => setRule((current) => ({
+      <div className="rule-form-title"><div><p className="section-step">RULE SETUP</p><h2>모집요강 반영 기준 등록</h2></div><div className="preset-list">{presets.map((preset) => <button type="button" key={preset.label} onClick={() => setRule((current) => ({
         ...baseRule,
         universityId: current.universityId,
         name: current.name,
@@ -961,7 +961,7 @@ function RuleForm({ universities, pending, initialValues, onSubmit }: {
       }))}>{preset.label}</button>)}</div></div>
       <div className="rule-fields">
         <label>대학교<select required value={rule.universityId} onChange={(event) => setRule({ ...rule, universityId: Number(event.target.value) })}><option value={0}>선택</option>{universities.map((university) => <option key={university.id} value={university.id}>{university.name}</option>)}</select></label>
-        <label>규칙명<input required value={rule.name} onChange={(event) => setRule({ ...rule, name: event.target.value })} placeholder="2027 교과우수자 공학계열" /></label>
+        <label>기준명<input required value={rule.name} onChange={(event) => setRule({ ...rule, name: event.target.value })} placeholder="2027 교과우수자 공학계열" /></label>
         <label>입학년도<input type="number" required value={rule.admissionYear} onChange={(event) => setRule({ ...rule, admissionYear: Number(event.target.value) })} /></label>
         <label>전형<input required value={rule.admissionType} onChange={(event) => setRule({ ...rule, admissionType: event.target.value })} /></label>
         <label>모집단위<input required value={rule.recruitmentUnit} onChange={(event) => setRule({ ...rule, recruitmentUnit: event.target.value })} /></label>
@@ -988,14 +988,14 @@ function RuleForm({ universities, pending, initialValues, onSubmit }: {
         <label>근거 모집요강<input value={rule.sourceDocument ?? ''} onChange={(event) => setRule({ ...rule, sourceDocument: event.target.value })} placeholder="파일명" /></label>
         <label>근거 페이지<input value={rule.sourcePages ?? ''} onChange={(event) => setRule({ ...rule, sourcePages: event.target.value })} placeholder="예: 34-35" /></label>
         <label>해석 주의사항<textarea value={rule.interpretationNote ?? ''} onChange={(event) => setRule({ ...rule, interpretationNote: event.target.value })} placeholder="담당자가 확인해야 할 각주·예외" /></label>
-        <label>이전 버전 변경점<textarea value={rule.changeSummary ?? ''} onChange={(event) => setRule({ ...rule, changeSummary: event.target.value })} placeholder="신규 규칙 또는 변경 내용" /></label>
+        <label>이전 버전 변경점<textarea value={rule.changeSummary ?? ''} onChange={(event) => setRule({ ...rule, changeSummary: event.target.value })} placeholder="신규 기준 또는 변경 내용" /></label>
         <label>중간값 자릿수<input type="number" min="0" max="8" value={rule.intermediateScale} onChange={(event) => setRule({ ...rule, intermediateScale: Number(event.target.value) })} /></label>
         <label>중간값 처리<select value={rule.intermediateRounding} onChange={(event) => setRule({ ...rule, intermediateRounding: event.target.value as CreateEvaluationRuleRequest['intermediateRounding'] })}><option value="HALF_UP">반올림</option><option value="DOWN">절사</option></select></label>
         <label>최종점수 자릿수<input type="number" min="0" max="8" value={rule.finalScale} onChange={(event) => setRule({ ...rule, finalScale: Number(event.target.value) })} /></label>
         <label>최종점수 처리<select value={rule.finalRounding} onChange={(event) => setRule({ ...rule, finalRounding: event.target.value as CreateEvaluationRuleRequest['finalRounding'] })}><option value="HALF_UP">반올림</option><option value="DOWN">절사</option></select></label>
       </div>
       <p className="form-note">교과 우선순위 기본값은 과학 → 수학 → 국어 → 영어 → 사회 → 기타이며, 우수 교과 동점 처리에 사용됩니다.</p>
-      <button className="verify-button" disabled={pending}>{pending ? '저장 중…' : '규칙 초안 저장'}</button>
+      <button className="verify-button" disabled={pending}>{pending ? '저장 중…' : '반영 기준 초안 저장'}</button>
     </form>
   );
 }

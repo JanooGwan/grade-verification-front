@@ -134,8 +134,8 @@ export default function StudentApplicationPanel({ transcript }: { transcript: St
       <div className="application-heading">
         <div>
           <p className="section-step">APPLICATION & RULE MATCH</p>
-          <h3>지원 정보와 자동 규칙 연결</h3>
-          <p>지원 대학·전형·모집단위를 등록하면 게시된 규칙을 자동으로 찾아 계산합니다.</p>
+          <h3>지원 정보와 반영 기준 자동 연결</h3>
+          <p>지원 대학·전형·모집단위를 등록하면 게시된 반영 기준을 자동으로 찾아 계산합니다.</p>
         </div>
         <span>{applicationsQuery.data?.length ?? 0}건 지원</span>
       </div>
@@ -178,7 +178,7 @@ export default function StudentApplicationPanel({ transcript }: { transcript: St
       </form>
 
       {universityId > 0 && !tracksQuery.isLoading && tracksQuery.data?.length === 0 && (
-        <p className="application-notice">이 대학의 {transcript.admissionYear}학년도 전형이 없습니다. 먼저 규칙 또는 전형을 등록해 주세요.</p>
+        <p className="application-notice">이 대학의 {transcript.admissionYear}학년도 전형이 없습니다. 먼저 반영 기준 또는 전형을 등록해 주세요.</p>
       )}
       {requestError && <div className="error-banner" role="alert">{errorMessage(requestError)}</div>}
 
@@ -240,8 +240,8 @@ function ApplicationCard({ application, studentId, verifying, deleting, scoring,
   const matchQuery = useQuery(admissionQueries.ruleMatch(studentId, application.id));
   const match = matchQuery.data;
   const status = match?.status ?? 'LOADING';
-  const statusLabel = status === 'MATCHED' ? '규칙 연결됨'
-    : status === 'NOT_FOUND' ? '규칙 없음'
+  const statusLabel = status === 'MATCHED' ? '반영 기준 연결됨'
+    : status === 'NOT_FOUND' ? '반영 기준 없음'
       : status === 'CONFLICT' ? '중복 충돌' : '확인 중';
   const universityName = application.universityName.replaceAll(' ', '');
   const supportsQuantitativeScore = (application.admissionYear === 2027

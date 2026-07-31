@@ -8,7 +8,7 @@ import AssistantPage from '@/pages/assistant/AssistantPage';
 type Page = 'rules' | 'students' | 'university' | 'operations' | 'assistant';
 
 const navigation: Array<{ page: Page; path: string; label: string }> = [
-  { page: 'rules', path: '/rules', label: '규칙' },
+  { page: 'rules', path: '/rules', label: '대학별 반영 기준' },
   { page: 'students', path: '/students', label: '학생 검증' },
   { page: 'university', path: '/universities', label: '대학' },
   { page: 'operations', path: '/operations', label: '운영' },
