@@ -16,6 +16,45 @@ function number(value: number | null) {
   return value == null ? '-' : value.toLocaleString('ko-KR', { maximumFractionDigits: 6 });
 }
 
+function ExcelFilePicker({
+  id,
+  label,
+  file,
+  hint,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  file: File | null;
+  hint?: string;
+  onChange: (file: File | null) => void;
+}) {
+  const labelId = `${id}-label`;
+
+  return (
+    <div className="transcript-file-field">
+      <span id={labelId}>{label}</span>
+      <div className="transcript-file-control">
+        <input
+          id={id}
+          className="transcript-file-input"
+          type="file"
+          accept=".xlsx,.xls"
+          aria-labelledby={labelId}
+          onChange={(event) => onChange(event.target.files?.[0] ?? null)}
+        />
+        <label className="transcript-file-button" htmlFor={id}>
+          {file ? '파일 변경' : 'Excel 선택'}
+        </label>
+        <span className="transcript-file-name" title={file?.name}>
+          {file?.name ?? '선택된 파일 없음'}
+        </span>
+      </div>
+      {hint && <small>{hint}</small>}
+    </div>
+  );
+}
+
 export default function TranscriptImportPanel({
   admissionYear,
   onAdmissionYearChange,
@@ -109,20 +148,17 @@ export default function TranscriptImportPanel({
                 ))}
             </select>
           </label>
-          <label htmlFor="transcript-file">
-            성적 파일
-            <input
-              id="transcript-file"
-              type="file"
-              accept=".xlsx,.xls"
-              onChange={(event) => {
-                setFile(event.target.files?.[0] ?? null);
-                preview.reset();
-                exporter.reset();
-                importer.reset();
-              }}
-            />
-          </label>
+          <ExcelFilePicker
+            id="transcript-file"
+            label="성적 파일"
+            file={file}
+            onChange={(selectedFile) => {
+              setFile(selectedFile);
+              preview.reset();
+              exporter.reset();
+              importer.reset();
+            }}
+          />
           <button disabled={!file || !universityId || preview.isPending}>
             {preview.isPending ? '검증 중…' : '검증하기'}
           </button>
@@ -142,21 +178,18 @@ export default function TranscriptImportPanel({
                 <option value="VALID_ROWS_ONLY">정상 행만 저장</option>
               </select>
             </label>
-            <label htmlFor="transcript-school-info-file">
-              추가정보 파일
-              <input
-                id="transcript-school-info-file"
-                type="file"
-                accept=".xlsx,.xls"
-                onChange={(event) => {
-                  setSchoolInfoFile(event.target.files?.[0] ?? null);
-                  preview.reset();
-                  exporter.reset();
-                  importer.reset();
-                }}
-              />
-              <small>출신고교 유형 판정이 필요한 경우에만 추가합니다.</small>
-            </label>
+            <ExcelFilePicker
+              id="transcript-school-info-file"
+              label="추가정보 파일"
+              file={schoolInfoFile}
+              hint="출신고교 유형 판정이 필요한 경우에만 추가합니다."
+              onChange={(selectedFile) => {
+                setSchoolInfoFile(selectedFile);
+                preview.reset();
+                exporter.reset();
+                importer.reset();
+              }}
+            />
           </div>
         </details>
       </form>
