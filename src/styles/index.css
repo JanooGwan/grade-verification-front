@@ -118,22 +118,26 @@ a:focus-visible {
 .form-note { margin: 20px 0 0; color: #69766e; font-size: .8rem; }
 .lifecycle-panel { border-color: #c8bea5; background: #fffdf7; }
 .lifecycle-heading { display: flex; align-items: end; justify-content: space-between; gap: 20px; }
-.lifecycle-heading > label { display: flex; min-width: 160px; flex-direction: column; gap: 6px; color: #5c5547; font-size: .75rem; font-weight: 700; }
+.lifecycle-heading > label { display: flex; min-width: 160px; flex-direction: column; gap: 6px; color: #5c5547; font-size: .82rem; font-weight: 700; }
 .rule-concept { display: grid; grid-template-columns: minmax(220px, .7fr) 1.3fr; gap: 18px; margin-top: 18px; padding: 16px 18px; border: 1px solid #d8cfb9; border-radius: 15px; background: #f8f3e6; }
-.rule-concept strong { color: #30463a; }
-.rule-concept p { margin: 5px 0 0; color: #716b5e; font-size: .76rem; line-height: 1.55; }
+.rule-concept strong { color: #30463a; font-size: .95rem; }
+.rule-concept p { margin: 5px 0 0; color: #716b5e; font-size: .82rem; line-height: 1.55; }
 .rule-concept ol { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 0; padding: 0; list-style: none; }
-.rule-concept li { display: flex; min-width: 0; align-items: center; gap: 7px; color: #566359; font-size: .7rem; line-height: 1.4; }
+.rule-concept li { display: flex; min-width: 0; align-items: center; gap: 7px; color: #566359; font-size: .78rem; line-height: 1.4; }
 .rule-concept li b { display: inline-flex; width: 24px; height: 24px; flex: 0 0 auto; align-items: center; justify-content: center; border-radius: 50%; color: white; background: #416d50; font-size: .68rem; }
 .review-inputs { display: grid; grid-template-columns: 220px 1fr; gap: 12px; margin: 18px 0; }
 .review-inputs label { display: flex; flex-direction: column; gap: 6px; color: #5c5547; font-size: .75rem; font-weight: 700; }
-.pdf-extraction { display: grid; grid-template-columns: 1.2fr 1fr 120px 1.25fr auto; gap: 12px; align-items: end; margin: 20px 0; padding: 18px; border: 1px solid #d8cfb9; border-radius: 16px; background: #f8f3e6; }
+.pdf-extraction { display: grid; grid-template-columns: minmax(190px, 240px) 130px minmax(340px, 1fr) 190px; gap: 12px; align-items: end; margin: 20px 0; padding: 18px; border: 1px solid #d8cfb9; border-radius: 16px; background: #f8f3e6; }
 .pdf-extraction-copy { grid-column: 1 / -1; }
-.pdf-extraction-copy strong { color: #3d4a40; }
-.pdf-extraction-copy p { margin: 5px 0 0; color: #716b5e; font-size: .78rem; }
-.pdf-extraction label { display: flex; min-width: 0; flex-direction: column; gap: 6px; color: #5c5547; font-size: .72rem; font-weight: 700; }
-.pdf-extraction input[type='file'] { width: 100%; padding: 8px; font-size: .72rem; }
-.pdf-extraction button, .extraction-result-heading button { min-height: 44px; padding: 0 13px; border: 0; border-radius: 10px; color: white; background: #285f40; font-size: .75rem; font-weight: 800; }
+.pdf-extraction-copy strong { color: #3d4a40; font-size: 1rem; }
+.pdf-extraction-copy p { margin: 5px 0 0; color: #716b5e; font-size: .82rem; }
+.pdf-extraction > label, .pdf-file-field { display: flex; min-width: 0; flex-direction: column; gap: 6px; color: #5c5547; font-size: .82rem; font-weight: 700; }
+.pdf-file-control { position: relative; display: flex; min-height: 44px; align-items: stretch; overflow: hidden; border: 1px solid #cad4cd; border-radius: 10px; background: white; }
+.pdf-file-input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+.pdf-file-button { display: inline-flex; flex: 0 0 auto; align-items: center; padding: 0 13px; border-right: 1px solid #cad4cd; color: #285f40; background: #edf4ef; cursor: pointer; font-size: .8rem; font-weight: 800; }
+.pdf-file-input:focus-visible + .pdf-file-button { outline: 3px solid rgb(45 117 77 / 24%); outline-offset: -3px; }
+.pdf-file-name { display: flex; min-width: 0; flex: 1; align-items: center; padding: 8px 11px; color: #526158; font-size: .8rem; font-weight: 500; line-height: 1.35; overflow-wrap: anywhere; }
+.pdf-extraction button, .extraction-result-heading button { min-height: 44px; padding: 0 13px; border: 0; border-radius: 10px; color: white; background: #285f40; font-size: .82rem; font-weight: 800; }
 .document-review-workspace { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: 14px; margin-bottom: 18px; }
 .pdf-preview-panel, .extraction-review-panel { min-width: 0; overflow: hidden; padding: 16px; border: 1px solid #d8cfb9; border-radius: 16px; background: #faf8f2; }
 .extraction-review-panel { border-color: #b8cdbf; background: #f3f8f4; }
@@ -705,6 +709,10 @@ h2 {
 @media (max-width: 560px) {
   .page-header {
     align-items: flex-start;
+  }
+
+  .pdf-extraction {
+    grid-template-columns: 1fr;
   }
 
   .brand-mark {

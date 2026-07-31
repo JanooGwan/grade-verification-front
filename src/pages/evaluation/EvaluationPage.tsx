@@ -610,9 +610,23 @@ function RuleLifecyclePanel({ universities, onApplyExtraction }: {
         <label>모집연도
           <input type="number" min="2000" max="2100" value={pdfAdmissionYear} onChange={(event) => setPdfAdmissionYear(Number(event.target.value))} />
         </label>
-        <label>모집요강 PDF
-          <input type="file" accept="application/pdf,.pdf" onChange={(event) => selectPdfFile(event.target.files?.[0] ?? null)} />
-        </label>
+        <div className="pdf-file-field">
+          <span id="rule-pdf-file-label">모집요강 PDF</span>
+          <div className="pdf-file-control">
+            <input
+              id="rule-pdf-file"
+              className="pdf-file-input"
+              type="file"
+              accept="application/pdf,.pdf"
+              aria-labelledby="rule-pdf-file-label"
+              onChange={(event) => selectPdfFile(event.target.files?.[0] ?? null)}
+            />
+            <label className="pdf-file-button" htmlFor="rule-pdf-file">PDF 선택</label>
+            <span className="pdf-file-name" title={pdfFile?.name}>
+              {pdfFile?.name ?? '선택된 파일 없음'}
+            </span>
+          </div>
+        </div>
         <button type="submit" disabled={extractionMutation.isPending}>
           {extractionMutation.isPending ? '전체 페이지 분석 중…' : '규칙 후보 추출'}
         </button>
