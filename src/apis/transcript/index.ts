@@ -1,5 +1,5 @@
 import { apiClient } from '@/apis/client';
-import type { StudentPage, StudentTranscript, TranscriptImportHistory, TranscriptImportMode, TranscriptImportResult, TranscriptPreview, TranscriptCourse, UpdateStudentCommonDataRequest, UpdateStudentRequest, UpsertTranscriptCourseRequest } from './entity';
+import type { SourceImportStartResult, StudentPage, StudentTranscript, TranscriptImportHistory, TranscriptImportMode, TranscriptImportResult, TranscriptPreview, TranscriptCourse, UpdateStudentCommonDataRequest, UpdateStudentRequest, UpsertTranscriptCourseRequest } from './entity';
 
 export interface StudentSearchParams {
   admissionYear: number;
@@ -68,6 +68,13 @@ export const importTranscriptExcel = (
 };
 
 export const getTranscriptImports = () => apiClient.get<TranscriptImportHistory[]>('/api/transcripts/imports');
+
+export const importSyuSourceExcel = (admissionYear: number, file: File) => {
+  const form = new FormData();
+  form.append('admissionYear', String(admissionYear));
+  form.append('file', file);
+  return apiClient.postForm<SourceImportStartResult>('/api/transcripts/imports/source/syu', form);
+};
 export const updateStudent = (studentId: number, request: UpdateStudentRequest) => apiClient.put<StudentTranscript>(`/api/transcripts/students/${studentId}`, request);
 export const updateStudentCommonData = (studentId: number, request: UpdateStudentCommonDataRequest) => apiClient.put<StudentTranscript>(`/api/transcripts/students/${studentId}/common-data`, request);
 export const deleteStudent = (studentId: number) => apiClient.delete(`/api/transcripts/students/${studentId}`);

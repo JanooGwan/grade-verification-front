@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { ApiError } from '@/apis/client';
-import { exportTranscriptValidationExcel, importTranscriptExcel, previewTranscriptExcel } from '@/apis/transcript';
+import { exportTranscriptValidationExcel, importSyuSourceExcel, importTranscriptExcel, previewTranscriptExcel } from '@/apis/transcript';
 import type { TranscriptImportMode } from '@/apis/transcript/entity';
 import { transcriptQueries, transcriptQueryKeys } from '@/apis/transcript/queries';
 import { universityQueries } from '@/apis/university/queries';
@@ -68,7 +68,13 @@ export default function TranscriptImportPanel({
   const [mode, setMode] = useState<TranscriptImportMode>('ALL_OR_NOTHING');
   const [universityId, setUniversityId] = useState(0);
   const universities = useQuery(universityQueries.list());
-  const history = useQuery(transcriptQueries.imports());
+  const history = useQuery({ ...transcriptQueries.imports(), refetchInterval: 3000 });
+  const selectedUniversity = universities.data?.find((item) => item.id === universityId);
+  const isSyuSource = Boolean(
+    file
+      && selectedUniversity?.name.includes('삼육')
+      && (file.size > 40 * 1024 * 1024 || file.name.includes('데이터전달')),
+  );
   const preview = useMutation({
     mutationFn: () => previewTranscriptExcel(admissionYear, universityId, file as File, schoolInfoFile),
   });
@@ -92,12 +98,20 @@ export default function TranscriptImportPanel({
       await queryClient.invalidateQueries({ queryKey: transcriptQueryKeys.all });
     },
   });
+  const sourceImporter = useMutation({
+    mutationFn: () => importSyuSourceExcel(admissionYear, file as File),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: transcriptQueryKeys.all });
+    },
+  });
 
   const submitPreview = (event: FormEvent) => {
     event.preventDefault();
-    if (file) preview.mutate();
+    if (!file) return;
+    if (isSyuSource) sourceImporter.mutate();
+    else preview.mutate();
   };
-  const error = preview.error ?? exporter.error ?? importer.error ?? universities.error ?? history.error;
+  const error = sourceImporter.error ?? preview.error ?? exporter.error ?? importer.error ?? universities.error ?? history.error;
   const verification = preview.data?.verification;
 
   return (
@@ -122,6 +136,7 @@ export default function TranscriptImportPanel({
                 preview.reset();
                 exporter.reset();
                 importer.reset();
+                sourceImporter.reset();
               }}
             />
           </label>
@@ -136,6 +151,7 @@ export default function TranscriptImportPanel({
                 preview.reset();
                 exporter.reset();
                 importer.reset();
+                sourceImporter.reset();
               }}
             >
               <option value="">선택</option>
@@ -157,10 +173,17 @@ export default function TranscriptImportPanel({
               preview.reset();
               exporter.reset();
               importer.reset();
+              sourceImporter.reset();
             }}
           />
-          <button disabled={!file || !universityId || preview.isPending}>
-            {preview.isPending ? '검증 중…' : '검증하기'}
+          <button disabled={!file || !universityId || preview.isPending || sourceImporter.isPending}>
+            {sourceImporter.isPending
+              ? '업로드 중…'
+              : preview.isPending
+                ? '검증 중…'
+                : isSyuSource
+                  ? '대용량 가져오기'
+                  : '검증하기'}
           </button>
         </div>
 
@@ -197,6 +220,20 @@ export default function TranscriptImportPanel({
       {error && (
         <div className="error-banner" role="alert">
           {errorMessage(error)}
+        </div>
+      )}
+
+      {isSyuSource && !sourceImporter.data && (
+        <p className="warning">
+          삼육대 대용량 원천 파일은 미리보기 없이 백그라운드에서 스트리밍 처리됩니다. 파일의 입학연도와
+          모집연도를 확인해 주세요.
+        </p>
+      )}
+
+      {sourceImporter.data && (
+        <div className="import-success">
+          <strong>가져오기 #{sourceImporter.data.importId} 작업을 시작했습니다.</strong>
+          <p>{sourceImporter.data.message}</p>
         </div>
       )}
 
@@ -348,9 +385,12 @@ export default function TranscriptImportPanel({
               #{item.importId} {item.originalFileName}
             </b>
             <small>
-              {item.importedRows}/{item.totalRows}행 · 오류 {item.failedRows} ·{' '}
+              {item.status === 'QUEUED' ? '대기 중' : item.status === 'PROCESSING' ? '처리 중' : item.status}
+              {' · '}{item.importedRows.toLocaleString()}/{item.totalRows.toLocaleString()}행 · 오류{' '}
+              {item.failedRows.toLocaleString()} ·{' '}
               {new Date(item.createdAt).toLocaleString()}
             </small>
+            {item.errorMessage && <small>{item.errorMessage}</small>}
           </span>
         ))}
       </div>

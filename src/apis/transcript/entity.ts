@@ -180,8 +180,17 @@ export interface TranscriptImportHistory {
   totalRows: number;
   importedRows: number;
   failedRows: number;
-  status: 'COMPLETED' | 'COMPLETED_WITH_ERRORS';
+  status: 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'COMPLETED_WITH_ERRORS' | 'FAILED';
+  sourceFormat: 'STANDARD_TRANSCRIPT_V1' | 'HANSHIN_MULTI_SHEET_V1' | 'SYU_SOURCE_WORKBOOK_V1';
+  errorMessage: string | null;
   createdAt: string;
+}
+
+export interface SourceImportStartResult {
+  importId: number;
+  status: 'QUEUED';
+  sourceFormat: 'SYU_SOURCE_WORKBOOK_V1';
+  message: string;
 }
 
 export interface UpdateStudentRequest {
