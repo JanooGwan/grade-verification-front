@@ -415,7 +415,9 @@ export default function TranscriptImportPanel({
               >
                 {historyExporter.isPending && historyExporter.variables === item.importId
                   ? '다운로드 중…'
-                  : '처리 결과 다운로드'}
+                  : item.sourceFormat === 'SYU_SOURCE_WORKBOOK_V1'
+                    ? '환산 결과 다운로드'
+                    : '처리 결과 다운로드'}
               </button>
             )}
           </span>
