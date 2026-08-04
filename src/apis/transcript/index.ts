@@ -69,6 +69,9 @@ export const importTranscriptExcel = (
 
 export const getTranscriptImports = () => apiClient.get<TranscriptImportHistory[]>('/api/transcripts/imports');
 
+export const getTranscriptImportResultExcel = (importId: number) =>
+  apiClient.getBlob(`/api/transcripts/imports/${importId}/result`);
+
 export const importSyuSourceExcel = (admissionYear: number, file: File) => {
   const form = new FormData();
   form.append('admissionYear', String(admissionYear));

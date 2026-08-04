@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { ApiError } from '@/apis/client';
-import { exportTranscriptValidationExcel, importSyuSourceExcel, importTranscriptExcel, previewTranscriptExcel } from '@/apis/transcript';
+import { exportTranscriptValidationExcel, getTranscriptImportResultExcel, importSyuSourceExcel, importTranscriptExcel, previewTranscriptExcel } from '@/apis/transcript';
 import type { TranscriptImportMode } from '@/apis/transcript/entity';
 import { transcriptQueries, transcriptQueryKeys } from '@/apis/transcript/queries';
 import { universityQueries } from '@/apis/university/queries';
@@ -104,6 +104,21 @@ export default function TranscriptImportPanel({
       await queryClient.invalidateQueries({ queryKey: transcriptQueryKeys.all });
     },
   });
+  const historyExporter = useMutation({
+    mutationFn: getTranscriptImportResultExcel,
+    onSuccess: (result, importId) => {
+      const item = history.data?.find((candidate) => candidate.importId === importId);
+      const baseName = item?.originalFileName.replace(/\.[^.]+$/, '') || `가져오기-${importId}`;
+      const url = URL.createObjectURL(result);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${baseName}-처리결과.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    },
+  });
 
   const submitPreview = (event: FormEvent) => {
     event.preventDefault();
@@ -111,7 +126,7 @@ export default function TranscriptImportPanel({
     if (isSyuSource) sourceImporter.mutate();
     else preview.mutate();
   };
-  const error = sourceImporter.error ?? preview.error ?? exporter.error ?? importer.error ?? universities.error ?? history.error;
+  const error = sourceImporter.error ?? preview.error ?? exporter.error ?? importer.error ?? historyExporter.error ?? universities.error ?? history.error;
   const verification = preview.data?.verification;
 
   return (
@@ -391,6 +406,18 @@ export default function TranscriptImportPanel({
               {new Date(item.createdAt).toLocaleString()}
             </small>
             {item.errorMessage && <small>{item.errorMessage}</small>}
+            {(item.status === 'COMPLETED' || item.status === 'COMPLETED_WITH_ERRORS') && (
+              <button
+                className="import-history-download"
+                type="button"
+                disabled={historyExporter.isPending}
+                onClick={() => historyExporter.mutate(item.importId)}
+              >
+                {historyExporter.isPending && historyExporter.variables === item.importId
+                  ? '다운로드 중…'
+                  : '처리 결과 다운로드'}
+              </button>
+            )}
           </span>
         ))}
       </div>
