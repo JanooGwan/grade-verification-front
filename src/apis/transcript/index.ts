@@ -2,14 +2,16 @@ import { apiClient } from '@/apis/client';
 import type { SourceImportStartResult, StudentPage, StudentTranscript, TranscriptImportHistory, TranscriptImportMode, TranscriptImportResult, TranscriptPreview, TranscriptCourse, UpdateStudentCommonDataRequest, UpdateStudentRequest, UpsertTranscriptCourseRequest } from './entity';
 
 export interface StudentSearchParams {
+  universityId: number;
   admissionYear: number;
   keyword: string;
   page: number;
   size: number;
 }
 
-export const getStudents = ({ admissionYear, keyword, page, size }: StudentSearchParams) => {
+export const getStudents = ({ universityId, admissionYear, keyword, page, size }: StudentSearchParams) => {
   const params = new URLSearchParams({
+    universityId: String(universityId),
     admissionYear: String(admissionYear),
     page: String(page),
     size: String(size),
@@ -18,9 +20,9 @@ export const getStudents = ({ admissionYear, keyword, page, size }: StudentSearc
   return apiClient.get<StudentPage>(`/api/transcripts/students?${params.toString()}`);
 };
 
-export const getStudentTranscript = (admissionYear: number, applicantNumber: string) =>
+export const getStudentTranscript = (universityId: number, admissionYear: number, applicantNumber: string) =>
   apiClient.get<StudentTranscript>(
-    `/api/transcripts/students/${encodeURIComponent(applicantNumber)}?admissionYear=${admissionYear}`,
+    `/api/transcripts/students/${encodeURIComponent(applicantNumber)}?universityId=${universityId}&admissionYear=${admissionYear}`,
   );
 
 export const previewTranscriptExcel = (
@@ -67,14 +69,16 @@ export const importTranscriptExcel = (
   return apiClient.postForm<TranscriptImportResult>('/api/transcripts/imports/excel', form);
 };
 
-export const getTranscriptImports = () => apiClient.get<TranscriptImportHistory[]>('/api/transcripts/imports');
+export const getTranscriptImports = (universityId: number) =>
+  apiClient.get<TranscriptImportHistory[]>(`/api/transcripts/imports?universityId=${universityId}`);
 
 export const getTranscriptImportResultExcel = (importId: number) =>
   apiClient.getBlob(`/api/transcripts/imports/${importId}/result`);
 
-export const importSyuSourceExcel = (admissionYear: number, file: File) => {
+export const importSyuSourceExcel = (admissionYear: number, universityId: number, file: File) => {
   const form = new FormData();
   form.append('admissionYear', String(admissionYear));
+  form.append('universityId', String(universityId));
   form.append('file', file);
   return apiClient.postForm<SourceImportStartResult>('/api/transcripts/imports/source/syu', form);
 };

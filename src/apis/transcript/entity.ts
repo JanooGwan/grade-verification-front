@@ -45,6 +45,8 @@ export interface StudentSchoolViolenceAction {
 
 export interface StudentSummary {
   studentId: number;
+  universityId: number;
+  universityName: string;
   admissionYear: number;
   applicantNumber: string;
   name: string;
@@ -91,6 +93,8 @@ export interface TranscriptCourse {
 
 export interface StudentTranscript {
   studentId: number;
+  universityId: number;
+  universityName: string;
   admissionYear: number;
   applicantNumber: string;
   name: string;
@@ -175,6 +179,8 @@ export interface TranscriptImportResult {
 
 export interface TranscriptImportHistory {
   importId: number;
+  universityId: number;
+  universityName: string;
   admissionYear: number;
   originalFileName: string;
   importMode: TranscriptImportMode;

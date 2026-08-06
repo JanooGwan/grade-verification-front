@@ -68,7 +68,7 @@ export default function TranscriptImportPanel({
   const [mode, setMode] = useState<TranscriptImportMode>('ALL_OR_NOTHING');
   const [universityId, setUniversityId] = useState(0);
   const universities = useQuery(universityQueries.list());
-  const history = useQuery({ ...transcriptQueries.imports(), refetchInterval: 3000 });
+  const history = useQuery({ ...transcriptQueries.imports(universityId), refetchInterval: 3000 });
   const selectedUniversity = universities.data?.find((item) => item.id === universityId);
   const isSyuSource = Boolean(
     file
@@ -99,7 +99,7 @@ export default function TranscriptImportPanel({
     },
   });
   const sourceImporter = useMutation({
-    mutationFn: () => importSyuSourceExcel(admissionYear, file as File),
+    mutationFn: () => importSyuSourceExcel(admissionYear, universityId, file as File),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: transcriptQueryKeys.all });
     },
