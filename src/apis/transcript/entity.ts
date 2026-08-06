@@ -163,8 +163,10 @@ export interface TranscriptImportResult {
   updatedStudents: number;
   createdCourses: number;
   updatedCourses: number;
+  deletedCourses: number;
   applicationRows: number;
   createdApplications: number;
+  deletedApplications: number;
   createdAdmissionTracks: number;
   createdRecruitmentUnits: number;
   errors: Array<{ rowNumber: number; reason: string }>;

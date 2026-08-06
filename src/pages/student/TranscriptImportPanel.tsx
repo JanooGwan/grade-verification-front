@@ -372,8 +372,9 @@ export default function TranscriptImportPanel({
         >
           <p>
             가져오기 #{importer.data.importId}: 학생 {importer.data.createdStudents}명 생성, 지원정보{' '}
-            {importer.data.createdApplications}건 생성, 과목 {importer.data.createdCourses}건 생성·
-            {importer.data.updatedCourses}건 수정, {importer.data.skippedRows}건 제외
+            {importer.data.createdApplications}건 생성·{importer.data.deletedApplications}건 삭제, 과목{' '}
+            {importer.data.createdCourses}건 생성·{importer.data.updatedCourses}건 수정·
+            {importer.data.deletedCourses}건 삭제, {importer.data.skippedRows}건 제외
           </p>
           {importer.data.status === 'COMPLETED_WITH_ERRORS' && (
             <>
