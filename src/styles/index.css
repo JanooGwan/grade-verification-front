@@ -764,6 +764,12 @@ h2 {
 .transcript-import-options > summary { width: max-content; cursor: pointer; color: #53675a; font-size: .82rem; font-weight: 750; }
 .transcript-import-options > div { display: grid; grid-template-columns: minmax(190px, .7fr) minmax(300px, 1.3fr); gap: 12px; max-width: 720px; margin-top: 14px; }
 .transcript-import-options small { color: #718078; font-size: .78rem; font-weight: 500; line-height: 1.45; }
+.stored-verification-control { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 0 22px 20px; padding: 14px 16px; border: 1px solid #cbdacf; border-radius: 10px; background: #f4f8f5; }
+.stored-verification-control span { display: flex; flex-direction: column; gap: 3px; }
+.stored-verification-control strong { color: #244a34; font-size: .9rem; }
+.stored-verification-control small { color: #718078; font-size: .75rem; }
+.stored-verification-control button { min-height: 40px; padding: 0 16px; border: 0; border-radius: 9px; color: white; background: #173f2a; font-size: .8rem; font-weight: 800; }
+.stored-verification-control button:disabled { opacity: .55; cursor: not-allowed; }
 .import-preview, .import-history { margin: 0 22px 20px; }
 .import-preview { padding-top: 20px; border-top: 1px solid #e2e9e4; }
 .import-preview-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 14px; }

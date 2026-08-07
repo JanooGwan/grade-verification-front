@@ -25,33 +25,15 @@ export const getStudentTranscript = (universityId: number, admissionYear: number
     `/api/transcripts/students/${encodeURIComponent(applicantNumber)}?universityId=${universityId}&admissionYear=${admissionYear}`,
   );
 
-export const previewTranscriptExcel = (
-  admissionYear: number,
-  universityId: number,
-  file: File,
-  schoolInfoFile?: File | null,
-) => {
-  const form = new FormData();
-  form.append('admissionYear', String(admissionYear));
-  form.append('universityId', String(universityId));
-  form.append('file', file);
-  if (schoolInfoFile) form.append('schoolInfoFile', schoolInfoFile);
-  return apiClient.postForm<TranscriptPreview>('/api/transcripts/imports/excel/preview', form);
-};
+export const verifyStoredTranscript = (universityId: number, admissionYear: number) =>
+  apiClient.get<TranscriptPreview>(
+    `/api/transcripts/verifications?universityId=${universityId}&admissionYear=${admissionYear}`,
+  );
 
-export const exportTranscriptValidationExcel = (
-  admissionYear: number,
-  universityId: number,
-  file: File,
-  schoolInfoFile?: File | null,
-) => {
-  const form = new FormData();
-  form.append('admissionYear', String(admissionYear));
-  form.append('universityId', String(universityId));
-  form.append('file', file);
-  if (schoolInfoFile) form.append('schoolInfoFile', schoolInfoFile);
-  return apiClient.postFormBlob('/api/transcripts/imports/excel/preview/export', form);
-};
+export const exportStoredTranscriptVerification = (universityId: number, admissionYear: number) =>
+  apiClient.getBlob(
+    `/api/transcripts/verifications/export?universityId=${universityId}&admissionYear=${admissionYear}`,
+  );
 
 export const importTranscriptExcel = (
   admissionYear: number,

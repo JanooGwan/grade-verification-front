@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { ApiError } from '@/apis/client';
-import { exportTranscriptValidationExcel, getTranscriptImportResultExcel, importSyuSourceExcel, importTranscriptExcel, previewTranscriptExcel } from '@/apis/transcript';
+import { exportStoredTranscriptVerification, getTranscriptImportResultExcel, importSyuSourceExcel, importTranscriptExcel, verifyStoredTranscript } from '@/apis/transcript';
 import type { TranscriptImportMode } from '@/apis/transcript/entity';
 import { transcriptQueries, transcriptQueryKeys } from '@/apis/transcript/queries';
 import { universityQueries } from '@/apis/university/queries';
@@ -88,6 +88,9 @@ export default function TranscriptImportPanel({
   );
   const universityId = selectedUniversity?.id ?? 0;
   const history = useQuery({ ...transcriptQueries.imports(universityId), refetchInterval: 3000 });
+  const hasActiveImport = history.data?.some(
+    (item) => item.status === 'QUEUED' || item.status === 'PROCESSING',
+  ) ?? false;
 
   useEffect(() => {
     if (!universities.data || rememberedUniversityId === 0 || selectedUniversity) return;
@@ -100,11 +103,11 @@ export default function TranscriptImportPanel({
       && selectedUniversity?.name.includes('삼육')
       && (file.size > 40 * 1024 * 1024 || file.name.includes('데이터전달')),
   );
-  const preview = useMutation({
-    mutationFn: () => previewTranscriptExcel(admissionYear, universityId, file as File, schoolInfoFile),
+  const verification = useMutation({
+    mutationFn: () => verifyStoredTranscript(universityId, admissionYear),
   });
   const exporter = useMutation({
-    mutationFn: () => exportTranscriptValidationExcel(admissionYear, universityId, file as File, schoolInfoFile),
+    mutationFn: () => exportStoredTranscriptVerification(universityId, admissionYear),
     onSuccess: (result) => {
       const url = URL.createObjectURL(result);
       const link = document.createElement('a');
@@ -121,6 +124,7 @@ export default function TranscriptImportPanel({
     mutationFn: () => importTranscriptExcel(admissionYear, universityId, mode, file as File, schoolInfoFile),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: transcriptQueryKeys.all });
+      verification.mutate();
     },
   });
   const sourceImporter = useMutation({
@@ -145,14 +149,16 @@ export default function TranscriptImportPanel({
     },
   });
 
-  const submitPreview = (event: FormEvent) => {
+  const submitImport = (event: FormEvent) => {
     event.preventDefault();
     if (!file) return;
+    verification.reset();
+    exporter.reset();
     if (isSyuSource) sourceImporter.mutate();
-    else preview.mutate();
+    else importer.mutate();
   };
-  const error = sourceImporter.error ?? preview.error ?? exporter.error ?? importer.error ?? historyExporter.error ?? universities.error ?? history.error;
-  const verification = preview.data?.verification;
+  const error = sourceImporter.error ?? verification.error ?? exporter.error ?? importer.error ?? historyExporter.error ?? universities.error ?? history.error;
+  const verificationResult = verification.data?.verification;
 
   return (
     <section className="transcript-import-panel transcript-import-panel--primary">
@@ -161,7 +167,7 @@ export default function TranscriptImportPanel({
         <a href="/api/transcripts/imports/template">양식 다운로드</a>
       </header>
 
-      <form className="transcript-import-form" onSubmit={submitPreview}>
+      <form className="transcript-import-form" onSubmit={submitImport}>
         <div className="transcript-import-main">
           <label htmlFor="transcript-admission-year">
             모집연도
@@ -173,7 +179,7 @@ export default function TranscriptImportPanel({
               value={admissionYear}
               onChange={(event) => {
                 onAdmissionYearChange(Number(event.target.value));
-                preview.reset();
+                verification.reset();
                 exporter.reset();
                 importer.reset();
                 sourceImporter.reset();
@@ -190,7 +196,7 @@ export default function TranscriptImportPanel({
                 const nextUniversityId = Number(event.target.value);
                 setRememberedUniversityId(nextUniversityId);
                 rememberUniversityId(nextUniversityId);
-                preview.reset();
+                verification.reset();
                 exporter.reset();
                 importer.reset();
                 sourceImporter.reset();
@@ -212,20 +218,20 @@ export default function TranscriptImportPanel({
             file={file}
             onChange={(selectedFile) => {
               setFile(selectedFile);
-              preview.reset();
+              verification.reset();
               exporter.reset();
               importer.reset();
               sourceImporter.reset();
             }}
           />
-          <button disabled={!file || !universityId || preview.isPending || sourceImporter.isPending}>
+          <button disabled={!file || !universityId || importer.isPending || sourceImporter.isPending}>
             {sourceImporter.isPending
               ? '업로드 중…'
-              : preview.isPending
-                ? '검증 중…'
+              : importer.isPending
+                ? '저장 중…'
                 : isSyuSource
-                  ? '대용량 가져오기'
-                  : '검증하기'}
+                  ? '대용량 DB 저장'
+                  : 'DB 저장'}
           </button>
         </div>
 
@@ -250,7 +256,7 @@ export default function TranscriptImportPanel({
               hint="출신고교 유형 판정이 필요한 경우에만 추가합니다."
               onChange={(selectedFile) => {
                 setSchoolInfoFile(selectedFile);
-                preview.reset();
+                verification.reset();
                 exporter.reset();
                 importer.reset();
               }}
@@ -279,60 +285,67 @@ export default function TranscriptImportPanel({
         </div>
       )}
 
-      {preview.data && (
+      <div className="stored-verification-control">
+        <span>
+          <strong>DB 성적검증</strong>
+          <small>선택한 대학·모집연도의 최신 완료 저장본만 사용합니다.</small>
+        </span>
+        <button
+          className="primary-action"
+          type="button"
+          disabled={!universityId || hasActiveImport || verification.isPending || importer.isPending || sourceImporter.isPending}
+          onClick={() => verification.mutate()}
+        >
+          {hasActiveImport ? '저장 처리 중…' : verification.isPending ? '검증 중…' : '성적 검증'}
+        </button>
+      </div>
+
+      {verification.data && (
         <div className="import-preview">
           <div className="import-preview-heading">
             <div>
-              <h2>검증 결과</h2>
+              <h2>DB 성적검증 결과</h2>
               <small>
-                {preview.data.sourceFormat === 'HANSHIN_MULTI_SHEET_V1' ? '한신대 전달양식' : '표준 성적양식'}
+                {verification.data.sourceFormat === 'HANSHIN_MULTI_SHEET_V1' ? '한신대 전달양식' : '표준 성적양식'}
               </small>
             </div>
             <div className="import-preview-actions">
               <button type="button" disabled={exporter.isPending} onClick={() => exporter.mutate()}>
                 {exporter.isPending ? '계산 중…' : '결과 다운로드'}
               </button>
-              <button
-                className="primary-action"
-                type="button"
-                disabled={importer.isPending || (mode === 'ALL_OR_NOTHING' && preview.data.invalidRows > 0)}
-                onClick={() => importer.mutate()}
-              >
-                {importer.isPending ? '저장 중…' : 'DB 저장'}
-              </button>
             </div>
           </div>
           <div className="import-preview-summary">
             <span>
               <small>지원정보</small>
-              <b>{preview.data.applicationRows.toLocaleString()}</b>
+              <b>{verification.data.applicationRows.toLocaleString()}</b>
             </span>
             <span>
               <small>전체 성적</small>
-              <b>{preview.data.totalRows.toLocaleString()}</b>
+              <b>{verification.data.totalRows.toLocaleString()}</b>
             </span>
             <span>
-              <small>정상</small>
-              <b>{preview.data.validRows.toLocaleString()}</b>
+              <small>DB 저장</small>
+              <b>{verification.data.validRows.toLocaleString()}</b>
             </span>
-            <span className={preview.data.invalidRows ? 'has-error' : ''}>
+            <span className={verification.data.invalidRows ? 'has-error' : ''}>
               <small>오류</small>
-              <b>{preview.data.invalidRows.toLocaleString()}</b>
+              <b>{verification.data.invalidRows.toLocaleString()}</b>
             </span>
             <span>
               <small>제외</small>
-              <b>{preview.data.skippedRows.toLocaleString()}</b>
+              <b>{verification.data.skippedRows.toLocaleString()}</b>
             </span>
           </div>
 
-          {preview.data.warnings.map((warning) => (
+          {verification.data.warnings.map((warning) => (
             <p className="warning" key={warning}>
               {warning}
             </p>
           ))}
-          {preview.data.errors.length > 0 && (
+          {verification.data.errors.length > 0 && (
             <div className="import-errors">
-              {preview.data.errors.slice(0, 20).map((item) => (
+              {verification.data.errors.slice(0, 20).map((item) => (
                 <p key={`${item.rowNumber}-${item.reason}`}>
                   <b>{item.rowNumber}행</b> {item.reason}
                 </p>
@@ -340,17 +353,17 @@ export default function TranscriptImportPanel({
             </div>
           )}
 
-          {verification && (
+          {verificationResult && (
             <section className="verification-preview" aria-labelledby="verification-preview-title">
               <div className="verification-preview__heading">
                 <h2 id="verification-preview-title">최종 환산 결과</h2>
                 <p>
-                  전체 {verification.totalApplications.toLocaleString()}건 · 성공{' '}
-                  <b>{verification.successfulApplications.toLocaleString()}</b>건 · 실패{' '}
-                  <b>{verification.failedApplications.toLocaleString()}</b>건
+                  전체 {verificationResult.totalApplications.toLocaleString()}건 · 성공{' '}
+                  <b>{verificationResult.successfulApplications.toLocaleString()}</b>건 · 실패{' '}
+                  <b>{verificationResult.failedApplications.toLocaleString()}</b>건
                 </p>
               </div>
-              {verification.sampleResults.length > 0 ? (
+              {verificationResult.sampleResults.length > 0 ? (
                 <div className="verification-result-table">
                   <div className="verification-result-row verification-result-row--head">
                     <b>지원정보 행</b>
@@ -361,7 +374,7 @@ export default function TranscriptImportPanel({
                     <b>평균등급</b>
                     <b>최종 환산점수</b>
                   </div>
-                  {verification.sampleResults.map((result) => (
+                  {verificationResult.sampleResults.map((result) => (
                     <div
                       className="verification-result-row"
                       key={`${result.applicationRowNumber}-${result.applicantNumber}`}
@@ -385,8 +398,8 @@ export default function TranscriptImportPanel({
                   <span>실패 내용은 결과 파일에서 확인할 수 있습니다.</span>
                 </div>
               )}
-              {verification.successfulApplications > verification.sampleResults.length && (
-                <p className="verification-preview__note">처음 {verification.sampleResults.length}건만 표시됩니다.</p>
+              {verificationResult.successfulApplications > verificationResult.sampleResults.length && (
+                <p className="verification-preview__note">처음 {verificationResult.sampleResults.length}건만 표시됩니다.</p>
               )}
             </section>
           )}
