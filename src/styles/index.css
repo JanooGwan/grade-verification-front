@@ -743,9 +743,8 @@ h2 {
 .student-page { padding-top: 42px; }
 .student-import-page { max-width: 1260px; }
 .transcript-import-panel, .student-data-editor { margin-bottom: 20px; overflow: hidden; border: 1px solid rgb(23 63 42 / 12%); border-radius: 16px; background: rgb(255 255 255 / 92%); box-shadow: 0 10px 28px rgb(35 58 43 / 5%); }
-.transcript-import-heading { display: flex; align-items: center; justify-content: space-between; padding: 20px 22px 16px; }
+.transcript-import-heading { display: flex; align-items: center; padding: 20px 22px 16px; }
 .transcript-import-heading h2 { font-size: 1.15rem; }
-.transcript-import-heading a { min-height: 40px; display: inline-flex; align-items: center; padding: 0 13px; border: 1px solid #b8cdbf; border-radius: 9px; color: #285f3f; background: white; font-size: .82rem; font-weight: 750; text-decoration: none; }
 .transcript-import-panel > summary, .student-data-editor > summary { display: flex; align-items: center; justify-content: space-between; padding: 16px 19px; cursor: pointer; list-style: none; }
 .transcript-import-panel summary span, .student-data-editor summary span { display: flex; flex-direction: column; gap: 2px; }
 .transcript-import-panel summary small, .student-data-editor summary small { color: #738078; font-size: .68rem; font-weight: 500; }

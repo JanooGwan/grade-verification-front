@@ -164,7 +164,6 @@ export default function TranscriptImportPanel({
     <section className="transcript-import-panel transcript-import-panel--primary">
       <header className="transcript-import-heading">
         <h2>검증 파일</h2>
-        <a href="/api/transcripts/imports/template">양식 다운로드</a>
       </header>
 
       <form className="transcript-import-form" onSubmit={submitImport}>
