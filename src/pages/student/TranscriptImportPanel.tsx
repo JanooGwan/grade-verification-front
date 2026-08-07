@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { ApiError } from '@/apis/client';
@@ -6,6 +6,21 @@ import { exportTranscriptValidationExcel, getTranscriptImportResultExcel, import
 import type { TranscriptImportMode } from '@/apis/transcript/entity';
 import { transcriptQueries, transcriptQueryKeys } from '@/apis/transcript/queries';
 import { universityQueries } from '@/apis/university/queries';
+
+const SELECTED_UNIVERSITY_STORAGE_KEY = 'student-transcript-selected-university-id';
+
+function storedUniversityId() {
+  const value = Number(window.localStorage.getItem(SELECTED_UNIVERSITY_STORAGE_KEY));
+  return Number.isSafeInteger(value) && value > 0 ? value : 0;
+}
+
+function rememberUniversityId(universityId: number) {
+  if (universityId > 0) {
+    window.localStorage.setItem(SELECTED_UNIVERSITY_STORAGE_KEY, String(universityId));
+  } else {
+    window.localStorage.removeItem(SELECTED_UNIVERSITY_STORAGE_KEY);
+  }
+}
 
 function errorMessage(error: unknown) {
   if (error instanceof ApiError) return error.response?.message ?? error.message;
@@ -66,10 +81,20 @@ export default function TranscriptImportPanel({
   const [file, setFile] = useState<File | null>(null);
   const [schoolInfoFile, setSchoolInfoFile] = useState<File | null>(null);
   const [mode, setMode] = useState<TranscriptImportMode>('ALL_OR_NOTHING');
-  const [universityId, setUniversityId] = useState(0);
+  const [rememberedUniversityId, setRememberedUniversityId] = useState(storedUniversityId);
   const universities = useQuery(universityQueries.list());
+  const selectedUniversity = universities.data?.find(
+    (item) => item.id === rememberedUniversityId && item.active,
+  );
+  const universityId = selectedUniversity?.id ?? 0;
   const history = useQuery({ ...transcriptQueries.imports(universityId), refetchInterval: 3000 });
-  const selectedUniversity = universities.data?.find((item) => item.id === universityId);
+
+  useEffect(() => {
+    if (!universities.data || rememberedUniversityId === 0 || selectedUniversity) return;
+
+    rememberUniversityId(0);
+  }, [rememberedUniversityId, selectedUniversity, universities.data]);
+
   const isSyuSource = Boolean(
     file
       && selectedUniversity?.name.includes('삼육')
@@ -162,7 +187,9 @@ export default function TranscriptImportPanel({
               value={universityId || ''}
               disabled={importer.isPending}
               onChange={(event) => {
-                setUniversityId(Number(event.target.value));
+                const nextUniversityId = Number(event.target.value);
+                setRememberedUniversityId(nextUniversityId);
+                rememberUniversityId(nextUniversityId);
                 preview.reset();
                 exporter.reset();
                 importer.reset();
@@ -393,8 +420,17 @@ export default function TranscriptImportPanel({
 
       <div className="import-history">
         <strong>
-          최근 가져오기 <small>{history.data?.length ?? 0}건</small>
+          최근 가져오기
+          {universityId > 0 && (
+            <small>{history.isLoading ? '불러오는 중…' : `${history.data?.length ?? 0}건`}</small>
+          )}
         </strong>
+        {universityId === 0 && (
+          <p className="import-history-empty">대학교를 선택하면 해당 대학의 최근 가져오기 이력을 확인할 수 있습니다.</p>
+        )}
+        {universityId > 0 && !history.isLoading && history.data?.length === 0 && (
+          <p className="import-history-empty">선택한 대학의 가져오기 이력이 없습니다.</p>
+        )}
         {history.data?.slice(0, 8).map((item) => (
           <span key={item.importId}>
             <b>
