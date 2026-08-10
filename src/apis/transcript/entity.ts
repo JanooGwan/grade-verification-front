@@ -147,7 +147,7 @@ export interface TranscriptPreview {
       admissionTrackName: string;
       recruitmentUnitName: string;
       finalScore: number;
-      averageGrade: number;
+      averageGrade: number | null;
       includedCourseCount: number;
     }>;
   } | null;
