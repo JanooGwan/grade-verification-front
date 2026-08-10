@@ -4,12 +4,14 @@ import StudentPage from '@/pages/student/StudentPage';
 import UniversityPage from '@/pages/university/UniversityPage';
 import OperationsPage from '@/pages/operation/OperationsPage';
 import AssistantPage from '@/pages/assistant/AssistantPage';
+import SavedVerificationPage from '@/pages/verification/SavedVerificationPage';
 
-type Page = 'rules' | 'students' | 'university' | 'operations' | 'assistant';
+type Page = 'rules' | 'students' | 'saved-verifications' | 'university' | 'operations' | 'assistant';
 
 const navigation: Array<{ page: Page; path: string; label: string }> = [
   { page: 'rules', path: '/rules', label: '대학별 반영 기준' },
   { page: 'students', path: '/students', label: '학생 검증' },
+  { page: 'saved-verifications', path: '/verification-results', label: '검증 결과' },
   { page: 'university', path: '/universities', label: '대학' },
   { page: 'operations', path: '/operations', label: '데이터 현황' },
   { page: 'assistant', path: '/assistant', label: 'AI 도우미' },
@@ -74,6 +76,7 @@ export default function App() {
       <div className="app-content">
         {page === 'rules' && <RulesPage />}
         {page === 'students' && <StudentPage />}
+        {page === 'saved-verifications' && <SavedVerificationPage />}
         {page === 'university' && <UniversityPage />}
         {page === 'operations' && <OperationsPage />}
         {page === 'assistant' && <AssistantPage />}

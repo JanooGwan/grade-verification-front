@@ -1,4 +1,5 @@
 import type { AchievementLevel, CourseGrade, SubjectCategory } from '@/apis/evaluation/entity';
+import type { GradeVerification } from '@/apis/evaluation/entity';
 
 export type EducationBackground = 'DOMESTIC_HIGH_SCHOOL' | 'GED' | 'FOREIGN_HIGH_SCHOOL';
 export type GraduationStatus = 'EXPECTED_GRADUATE' | 'GRADUATE';
@@ -162,6 +163,53 @@ export interface StoredVerificationPersistenceResult {
   failedResults: number;
   replacedResults: number;
   savedAt: string;
+}
+
+export interface SavedVerificationBatch {
+  sourceImportId: number;
+  universityId: number;
+  universityName: string;
+  admissionYear: number;
+  originalFileName: string;
+  sourceFormat: string;
+  resultCount: number;
+  savedAt: string;
+}
+
+export interface SavedVerificationResultRow {
+  verificationRunId: number;
+  studentId: number;
+  applicantNumber: string;
+  studentName: string;
+  admissionTrackName: string;
+  recruitmentUnitName: string;
+  ruleName: string;
+  ruleVersion: number;
+  finalScore: number;
+  averageGrade: number | null;
+  includedCourseCount: number;
+  excludedCourseCount: number;
+  savedAt: string;
+}
+
+export interface SavedVerificationPage {
+  content: SavedVerificationResultRow[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+}
+
+export interface SavedVerificationDetail {
+  verificationRunId: number;
+  sourceImportId: number;
+  studentId: number;
+  applicantNumber: string;
+  studentName: string;
+  savedAt: string;
+  verification: GradeVerification;
 }
 
 export interface TranscriptImportResult {

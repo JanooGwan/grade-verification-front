@@ -156,7 +156,7 @@ export interface GradeVerification {
   recruitmentUnit: string;
   finalScore: number;
   baseScore: number;
-  averageGrade: number;
+  averageGrade: number | null;
   selectionStrategy: SelectionStrategy;
   scoreAggregation: ScoreAggregation;
   sourceDocument: string | null;
@@ -188,7 +188,7 @@ export interface CalculationSummary {
   convertedScoreTimesWeightSum: number;
   totalAppliedWeight: number;
   totalIncludedCredits: number;
-  averageGrade: number;
+  averageGrade: number | null;
   baseScore: number;
   scoreMultiplier: number;
   scoreBeforeFinalRounding: number;

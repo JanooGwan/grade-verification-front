@@ -1,5 +1,5 @@
 import { apiClient } from '@/apis/client';
-import type { SourceImportStartResult, StoredVerificationPersistenceResult, StudentPage, StudentTranscript, TranscriptImportHistory, TranscriptImportMode, TranscriptImportResult, TranscriptPreview, TranscriptCourse, UpdateStudentCommonDataRequest, UpdateStudentRequest, UpsertTranscriptCourseRequest } from './entity';
+import type { SavedVerificationBatch, SavedVerificationDetail, SavedVerificationPage, SourceImportStartResult, StoredVerificationPersistenceResult, StudentPage, StudentTranscript, TranscriptImportHistory, TranscriptImportMode, TranscriptImportResult, TranscriptPreview, TranscriptCourse, UpdateStudentCommonDataRequest, UpdateStudentRequest, UpsertTranscriptCourseRequest } from './entity';
 
 export interface StudentSearchParams {
   universityId: number;
@@ -35,6 +35,29 @@ export const persistStoredTranscriptVerification = (universityId: number, admiss
     `/api/transcripts/verifications/persist?universityId=${universityId}&admissionYear=${admissionYear}`,
     {},
   );
+
+export const getSavedVerificationBatches = (universityId: number, admissionYear: number) =>
+  apiClient.get<SavedVerificationBatch[]>(
+    `/api/transcripts/saved-verifications/batches?universityId=${universityId}&admissionYear=${admissionYear}`,
+  );
+
+export const getSavedVerificationResults = (
+  sourceImportId: number,
+  keyword: string,
+  page: number,
+  size = 50,
+) => {
+  const params = new URLSearchParams({
+    sourceImportId: String(sourceImportId),
+    page: String(page),
+    size: String(size),
+  });
+  if (keyword.trim()) params.set('keyword', keyword.trim());
+  return apiClient.get<SavedVerificationPage>(`/api/transcripts/saved-verifications?${params.toString()}`);
+};
+
+export const getSavedVerificationDetail = (verificationRunId: number) =>
+  apiClient.get<SavedVerificationDetail>(`/api/transcripts/saved-verifications/${verificationRunId}`);
 
 export const exportStoredTranscriptVerification = (universityId: number, admissionYear: number) =>
   apiClient.getBlob(

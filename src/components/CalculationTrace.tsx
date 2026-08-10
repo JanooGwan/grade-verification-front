@@ -1,7 +1,8 @@
 import type { CalculationSummary, ScoreAggregation } from '@/apis/evaluation/entity';
 import { roundingLabels } from '@/constants/evaluation';
 
-function display(value: number, scale?: number) {
+function display(value: number | null, scale?: number) {
+  if (value === null) return '-';
   return value.toLocaleString('ko-KR', {
     minimumFractionDigits: scale,
     maximumFractionDigits: scale ?? 8,
