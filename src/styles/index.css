@@ -950,6 +950,27 @@ h2 {
 .extraction-differences { margin-top: 10px; padding: 11px; border-radius: 9px; background: white; }
 .extraction-differences p { display: grid; grid-template-columns: 100px 1fr auto 1fr; gap: 8px; margin: 6px 0; color: #5d685f; font-size: .68rem; }
 .operations-page { padding-top: 48px; }
+.ops-data-status { margin-top: 24px; }
+.ops-data-heading { gap: 20px; }
+.ops-data-heading > div:first-child > p:last-child { margin: 5px 0 0; color: #6d7a71; font-size: .72rem; }
+.ops-data-controls { display: flex; align-items: center; gap: 8px; }
+.ops-data-controls label { color: #69766d; font-size: .7rem; font-weight: 750; }
+.ops-data-controls select, .ops-data-controls button { min-height: 38px; padding: 0 11px; border: 1px solid #cddacf; border-radius: 9px; background: white; font-size: .72rem; }
+.ops-data-controls button { border-color: #285f40; color: white; background: #285f40; font-weight: 800; }
+.ops-data-controls button:disabled { opacity: .55; cursor: not-allowed; }
+.ops-data-table { margin-top: 16px; overflow-x: auto; border: 1px solid #dde6df; border-radius: 12px; }
+.ops-data-table table { width: 100%; min-width: 920px; border-collapse: collapse; }
+.ops-data-table th { padding: 11px 12px; color: #f7fbf8; background: #285f40; font-size: .7rem; text-align: left; }
+.ops-data-table td { padding: 13px 12px; border-top: 1px solid #e5ebe7; color: #3e4c43; font-size: .74rem; vertical-align: top; }
+.ops-data-table tbody tr:first-child td { border-top: 0; }
+.ops-data-table tbody tr:hover td { background: #f7faf8; }
+.ops-data-table td:nth-child(1) { width: 18%; }.ops-data-table td:nth-child(2) { width: 11%; white-space: nowrap; }.ops-data-table td:nth-child(3) { width: 25%; }.ops-data-table td:nth-child(4) { width: 23%; }.ops-data-table td:nth-child(5) { width: 23%; }
+.ops-data-table td > small { display: block; max-width: 250px; margin-top: 5px; overflow: hidden; color: #758178; font-size: .66rem; text-overflow: ellipsis; white-space: nowrap; }
+.ops-university-cell strong, .ops-university-cell small { display: block; }.ops-university-cell small { margin-top: 3px; color: #7b867e; }
+.ops-status-badge { display: inline-flex; align-items: center; min-height: 24px; padding: 3px 8px; border-radius: 999px; font-size: .64rem; font-weight: 850; }
+.ops-status-badge.is-ready { color: #23613e; background: #dff0e4; }.ops-status-badge.is-pending { color: #75571d; background: #fff0c8; }.ops-status-badge.is-error { color: #913d35; background: #fae4e1; }.ops-status-badge.is-empty { color: #727b75; background: #edf0ee; }
+.ops-data-empty { padding: 34px 20px; color: #758178; font-size: .76rem; text-align: center; }
+.ops-data-note { margin: 9px 2px 0; color: #78847c; font-size: .66rem; text-align: right; }
 .ops-metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 13px; margin: 24px 0; }
 .ops-metric { display: flex; flex-direction: column; padding: 20px; border: 1px solid rgb(23 63 42 / 10%); border-radius: 18px; background: rgb(255 255 255 / 88%); box-shadow: 0 14px 35px rgb(35 58 43 / 7%); }
 .ops-metric span { color: #68766d; font-size: .72rem; font-weight: 700; }.ops-metric strong { margin: 4px 0; color: #173f2a; font-size: 2rem; }.ops-metric small { color: #7a867e; }.ops-metric.is-accent { background: #173f2a; }.ops-metric.is-accent span, .ops-metric.is-accent strong, .ops-metric.is-accent small { color: white; }
@@ -981,6 +1002,7 @@ h2 {
   .student-common-profile { grid-template-columns: 1fr 1fr; }
   .student-violence-row { grid-template-columns: 1fr 1fr 1fr; }
   .ops-metric-grid, .ops-panels { grid-template-columns: 1fr 1fr; }
+  .ops-data-heading { align-items: flex-start; flex-direction: column; }
 }
 
 @media (max-width: 620px) {
@@ -1001,6 +1023,8 @@ h2 {
   .import-preview-actions { display: grid; grid-template-columns: 1fr 1fr; }
   .import-preview-summary { grid-template-columns: 1fr 1fr; }
   .student-profile-form, .course-editor-form, .ops-metric-grid, .ops-panels { grid-template-columns: 1fr; }
+  .ops-data-controls { display: grid; width: 100%; grid-template-columns: auto 1fr; }
+  .ops-data-controls button { grid-column: 1 / -1; }
   .student-common-profile, .student-violence-row { grid-template-columns: 1fr; }
   .student-attendance-grid { grid-template-columns: 58px repeat(4, minmax(54px, 1fr)); overflow-x: auto; }
   .verification-history > div { grid-template-columns: 1fr; }

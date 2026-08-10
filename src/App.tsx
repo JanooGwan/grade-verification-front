@@ -11,7 +11,7 @@ const navigation: Array<{ page: Page; path: string; label: string }> = [
   { page: 'rules', path: '/rules', label: '대학별 반영 기준' },
   { page: 'students', path: '/students', label: '학생 검증' },
   { page: 'university', path: '/universities', label: '대학' },
-  { page: 'operations', path: '/operations', label: '운영' },
+  { page: 'operations', path: '/operations', label: '데이터 현황' },
   { page: 'assistant', path: '/assistant', label: 'AI 도우미' },
 ];
 
