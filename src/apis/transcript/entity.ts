@@ -155,6 +155,15 @@ export interface TranscriptPreview {
   warnings: string[];
 }
 
+export interface StoredVerificationPersistenceResult {
+  sourceImportId: number;
+  totalApplications: number;
+  savedResults: number;
+  failedResults: number;
+  replacedResults: number;
+  savedAt: string;
+}
+
 export interface TranscriptImportResult {
   importId: number;
   status: 'COMPLETED' | 'COMPLETED_WITH_ERRORS';

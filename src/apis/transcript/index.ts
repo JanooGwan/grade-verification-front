@@ -1,5 +1,5 @@
 import { apiClient } from '@/apis/client';
-import type { SourceImportStartResult, StudentPage, StudentTranscript, TranscriptImportHistory, TranscriptImportMode, TranscriptImportResult, TranscriptPreview, TranscriptCourse, UpdateStudentCommonDataRequest, UpdateStudentRequest, UpsertTranscriptCourseRequest } from './entity';
+import type { SourceImportStartResult, StoredVerificationPersistenceResult, StudentPage, StudentTranscript, TranscriptImportHistory, TranscriptImportMode, TranscriptImportResult, TranscriptPreview, TranscriptCourse, UpdateStudentCommonDataRequest, UpdateStudentRequest, UpsertTranscriptCourseRequest } from './entity';
 
 export interface StudentSearchParams {
   universityId: number;
@@ -28,6 +28,12 @@ export const getStudentTranscript = (universityId: number, admissionYear: number
 export const verifyStoredTranscript = (universityId: number, admissionYear: number) =>
   apiClient.get<TranscriptPreview>(
     `/api/transcripts/verifications?universityId=${universityId}&admissionYear=${admissionYear}`,
+  );
+
+export const persistStoredTranscriptVerification = (universityId: number, admissionYear: number) =>
+  apiClient.post<StoredVerificationPersistenceResult>(
+    `/api/transcripts/verifications/persist?universityId=${universityId}&admissionYear=${admissionYear}`,
+    {},
   );
 
 export const exportStoredTranscriptVerification = (universityId: number, admissionYear: number) =>

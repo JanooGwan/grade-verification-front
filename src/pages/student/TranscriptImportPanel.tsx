@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { ApiError } from '@/apis/client';
-import { exportStoredTranscriptVerification, getTranscriptImportResultExcel, importSyuSourceExcel, importTranscriptExcel, verifyStoredTranscript } from '@/apis/transcript';
+import { exportStoredTranscriptVerification, getTranscriptImportResultExcel, importSyuSourceExcel, importTranscriptExcel, persistStoredTranscriptVerification, verifyStoredTranscript } from '@/apis/transcript';
 import type { TranscriptImportMode } from '@/apis/transcript/entity';
 import { transcriptQueries, transcriptQueryKeys } from '@/apis/transcript/queries';
 import { universityQueries } from '@/apis/university/queries';
@@ -120,6 +120,12 @@ export default function TranscriptImportPanel({
       URL.revokeObjectURL(url);
     },
   });
+  const persistence = useMutation({
+    mutationFn: () => persistStoredTranscriptVerification(universityId, admissionYear),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['operations', 'dashboard'] });
+    },
+  });
   const importer = useMutation({
     mutationFn: () => importTranscriptExcel(admissionYear, universityId, mode, file as File, schoolInfoFile),
     onSuccess: async () => {
@@ -153,11 +159,12 @@ export default function TranscriptImportPanel({
     event.preventDefault();
     if (!file) return;
     verification.reset();
+    persistence.reset();
     exporter.reset();
     if (isSyuSource) sourceImporter.mutate();
     else importer.mutate();
   };
-  const error = sourceImporter.error ?? verification.error ?? exporter.error ?? importer.error ?? historyExporter.error ?? universities.error ?? history.error;
+  const error = sourceImporter.error ?? verification.error ?? persistence.error ?? exporter.error ?? importer.error ?? historyExporter.error ?? universities.error ?? history.error;
   const verificationResult = verification.data?.verification;
 
   return (
@@ -179,6 +186,7 @@ export default function TranscriptImportPanel({
               onChange={(event) => {
                 onAdmissionYearChange(Number(event.target.value));
                 verification.reset();
+                persistence.reset();
                 exporter.reset();
                 importer.reset();
                 sourceImporter.reset();
@@ -196,6 +204,7 @@ export default function TranscriptImportPanel({
                 setRememberedUniversityId(nextUniversityId);
                 rememberUniversityId(nextUniversityId);
                 verification.reset();
+                persistence.reset();
                 exporter.reset();
                 importer.reset();
                 sourceImporter.reset();
@@ -218,6 +227,7 @@ export default function TranscriptImportPanel({
             onChange={(selectedFile) => {
               setFile(selectedFile);
               verification.reset();
+              persistence.reset();
               exporter.reset();
               importer.reset();
               sourceImporter.reset();
@@ -256,6 +266,7 @@ export default function TranscriptImportPanel({
               onChange={(selectedFile) => {
                 setSchoolInfoFile(selectedFile);
                 verification.reset();
+                persistence.reset();
                 exporter.reset();
                 importer.reset();
               }}
@@ -293,7 +304,10 @@ export default function TranscriptImportPanel({
           className="primary-action"
           type="button"
           disabled={!universityId || hasActiveImport || verification.isPending || importer.isPending || sourceImporter.isPending}
-          onClick={() => verification.mutate()}
+          onClick={() => {
+            persistence.reset();
+            verification.mutate();
+          }}
         >
           {hasActiveImport ? '저장 처리 중…' : verification.isPending ? '검증 중…' : '성적 검증'}
         </button>
@@ -309,11 +323,30 @@ export default function TranscriptImportPanel({
               </small>
             </div>
             <div className="import-preview-actions">
+              <button
+                className="primary-action"
+                type="button"
+                disabled={persistence.isPending}
+                onClick={() => persistence.mutate()}
+              >
+                {persistence.isPending ? '저장 중…' : '검증 결과 DB 저장'}
+              </button>
               <button type="button" disabled={exporter.isPending} onClick={() => exporter.mutate()}>
                 {exporter.isPending ? '계산 중…' : '결과 다운로드'}
               </button>
             </div>
           </div>
+          {persistence.data && (
+            <div className="import-success">
+              <strong>검증 결과 {persistence.data.savedResults.toLocaleString()}건을 DB에 저장했습니다.</strong>
+              <p>
+                업로드 #{persistence.data.sourceImportId} 기준 · 실패 {persistence.data.failedResults.toLocaleString()}건
+                {persistence.data.replacedResults > 0
+                  ? ` · 기존 결과 ${persistence.data.replacedResults.toLocaleString()}건 교체`
+                  : ''}
+              </p>
+            </div>
+          )}
           <div className="import-preview-summary">
             <span>
               <small>지원정보</small>
