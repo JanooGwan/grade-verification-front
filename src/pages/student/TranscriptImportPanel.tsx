@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { ApiError } from '@/apis/client';
@@ -78,6 +78,7 @@ export default function TranscriptImportPanel({
   onAdmissionYearChange: (year: number) => void;
 }) {
   const queryClient = useQueryClient();
+  const importSubmittingRef = useRef(false);
   const [file, setFile] = useState<File | null>(null);
   const [schoolInfoFile, setSchoolInfoFile] = useState<File | null>(null);
   const [mode, setMode] = useState<TranscriptImportMode>('ALL_OR_NOTHING');
@@ -132,11 +133,17 @@ export default function TranscriptImportPanel({
       await queryClient.invalidateQueries({ queryKey: transcriptQueryKeys.all });
       verification.mutate();
     },
+    onSettled: () => {
+      importSubmittingRef.current = false;
+    },
   });
   const sourceImporter = useMutation({
     mutationFn: () => importSyuSourceExcel(admissionYear, universityId, file as File),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: transcriptQueryKeys.all });
+    },
+    onSettled: () => {
+      importSubmittingRef.current = false;
     },
   });
   const historyExporter = useMutation({
@@ -157,7 +164,8 @@ export default function TranscriptImportPanel({
 
   const submitImport = (event: FormEvent) => {
     event.preventDefault();
-    if (!file) return;
+    if (!file || importSubmittingRef.current || importer.isPending || sourceImporter.isPending) return;
+    importSubmittingRef.current = true;
     verification.reset();
     persistence.reset();
     exporter.reset();
