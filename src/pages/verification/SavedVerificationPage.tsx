@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 
 import { ApiError } from '@/apis/client';
 import {
+  exportSavedVerificationBatch,
   getSavedVerificationBatches,
   getSavedVerificationDetail,
   getSavedVerificationResults,
@@ -53,6 +54,7 @@ export default function SavedVerificationPage() {
   const effectiveSourceImportId = batches.data?.some((batch) => batch.sourceImportId === sourceImportId)
     ? sourceImportId
     : batches.data?.[0]?.sourceImportId ?? 0;
+  const selectedBatch = batches.data?.find((batch) => batch.sourceImportId === effectiveSourceImportId);
   const results = useQuery({
     queryKey: ['saved-verifications', 'results', effectiveSourceImportId, keyword, page],
     queryFn: () => getSavedVerificationResults(effectiveSourceImportId, keyword, page),
@@ -63,6 +65,21 @@ export default function SavedVerificationPage() {
     queryFn: () => getSavedVerificationDetail(verificationRunId),
     enabled: verificationRunId > 0,
   });
+  const exporter = useMutation({
+    mutationFn: () => exportSavedVerificationBatch(selectedBatch?.sourceImportId ?? 0),
+    onSuccess: (result) => {
+      if (!selectedBatch) return;
+      const baseName = selectedBatch.originalFileName.replace(/\.[^.]+$/, '');
+      const url = URL.createObjectURL(result);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${baseName}-검증결과.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    },
+  });
 
   const resetSelection = () => {
     setSourceImportId(0);
@@ -70,6 +87,7 @@ export default function SavedVerificationPage() {
     setKeywordInput('');
     setKeyword('');
     setPage(0);
+    exporter.reset();
   };
 
   const submitSearch = (event: FormEvent) => {
@@ -79,8 +97,7 @@ export default function SavedVerificationPage() {
     setVerificationRunId(0);
   };
 
-  const requestError = universities.error ?? batches.error ?? results.error ?? detail.error;
-  const selectedBatch = batches.data?.find((batch) => batch.sourceImportId === effectiveSourceImportId);
+  const requestError = universities.error ?? batches.error ?? results.error ?? detail.error ?? exporter.error;
 
   return (
     <main className="saved-verification-page">
@@ -185,15 +202,25 @@ export default function SavedVerificationPage() {
               <h2 id="saved-verification-results-title">지원자별 검증 결과</h2>
               <p>{selectedBatch.originalFileName} · 총 {results.data?.totalElements.toLocaleString() ?? selectedBatch.resultCount.toLocaleString()}건</p>
             </div>
-            <form className="saved-verification-search" onSubmit={submitSearch}>
-              <input
-                aria-label="저장 결과 검색"
-                value={keywordInput}
-                onChange={(event) => setKeywordInput(event.target.value)}
-                placeholder="수험번호·이름·전형·모집단위 검색"
-              />
-              <button type="submit">검색</button>
-            </form>
+            <div className="saved-verification-result-actions">
+              <button
+                className="saved-verification-export"
+                type="button"
+                disabled={exporter.isPending}
+                onClick={() => exporter.mutate()}
+              >
+                {exporter.isPending ? '내보내는 중…' : '엑셀 내보내기'}
+              </button>
+              <form className="saved-verification-search" onSubmit={submitSearch}>
+                <input
+                  aria-label="저장 결과 검색"
+                  value={keywordInput}
+                  onChange={(event) => setKeywordInput(event.target.value)}
+                  placeholder="수험번호·이름·전형·모집단위 검색"
+                />
+                <button type="submit">검색</button>
+              </form>
+            </div>
           </div>
 
           <div className="saved-verification-table">

@@ -2,8 +2,8 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { ApiError } from '@/apis/client';
-import { exportStoredTranscriptVerification, getTranscriptImportResultExcel, importSyuSourceExcel, importTranscriptExcel, persistStoredTranscriptVerification, verifyStoredTranscript } from '@/apis/transcript';
-import type { TranscriptImportMode } from '@/apis/transcript/entity';
+import { exportSavedVerificationBatch, exportStoredTranscriptVerification, getTranscriptImportResultExcel, importSyuSourceExcel, importTranscriptExcel, persistStoredTranscriptVerification, verifyStoredTranscript } from '@/apis/transcript';
+import type { TranscriptImportHistory, TranscriptImportMode } from '@/apis/transcript/entity';
 import { transcriptQueries, transcriptQueryKeys } from '@/apis/transcript/queries';
 import { universityQueries } from '@/apis/university/queries';
 
@@ -147,14 +147,15 @@ export default function TranscriptImportPanel({
     },
   });
   const historyExporter = useMutation({
-    mutationFn: getTranscriptImportResultExcel,
-    onSuccess: (result, importId) => {
-      const item = history.data?.find((candidate) => candidate.importId === importId);
-      const baseName = item?.originalFileName.replace(/\.[^.]+$/, '') || `가져오기-${importId}`;
+    mutationFn: (item: TranscriptImportHistory) => item.sourceFormat === 'SYU_SOURCE_WORKBOOK_V1'
+      ? getTranscriptImportResultExcel(item.importId)
+      : exportSavedVerificationBatch(item.importId),
+    onSuccess: (result, item) => {
+      const baseName = item.originalFileName.replace(/\.[^.]+$/, '') || `가져오기-${item.importId}`;
       const url = URL.createObjectURL(result);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${baseName}-처리결과.xlsx`;
+      link.download = `${baseName}-${item.sourceFormat === 'SYU_SOURCE_WORKBOOK_V1' ? '환산결과' : '검증결과'}.xlsx`;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -501,13 +502,11 @@ export default function TranscriptImportPanel({
                 className="import-history-download"
                 type="button"
                 disabled={historyExporter.isPending}
-                onClick={() => historyExporter.mutate(item.importId)}
+                onClick={() => historyExporter.mutate(item)}
               >
-                {historyExporter.isPending && historyExporter.variables === item.importId
-                  ? '다운로드 중…'
-                  : item.sourceFormat === 'SYU_SOURCE_WORKBOOK_V1'
-                    ? '환산 결과 다운로드'
-                    : '처리 결과 다운로드'}
+                {historyExporter.isPending && historyExporter.variables?.importId === item.importId
+                  ? '내보내는 중…'
+                  : '엑셀 내보내기'}
               </button>
             )}
           </span>

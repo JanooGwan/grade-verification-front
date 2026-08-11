@@ -59,6 +59,9 @@ export const getSavedVerificationResults = (
 export const getSavedVerificationDetail = (verificationRunId: number) =>
   apiClient.get<SavedVerificationDetail>(`/api/transcripts/saved-verifications/${verificationRunId}`);
 
+export const exportSavedVerificationBatch = (sourceImportId: number) =>
+  apiClient.getBlob(`/api/transcripts/saved-verifications/batches/${sourceImportId}/export`);
+
 export const exportStoredTranscriptVerification = (universityId: number, admissionYear: number) =>
   apiClient.getBlob(
     `/api/transcripts/verifications/export?universityId=${universityId}&admissionYear=${admissionYear}`,
