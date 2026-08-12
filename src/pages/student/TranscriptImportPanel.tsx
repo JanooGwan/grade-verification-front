@@ -185,7 +185,7 @@ export default function TranscriptImportPanel({
       <form className="transcript-import-form" onSubmit={submitImport}>
         <div className="transcript-import-main">
           <label htmlFor="transcript-admission-year">
-            모집연도
+            검증 기준연도
             <input
               id="transcript-admission-year"
               type="number"
@@ -292,8 +292,8 @@ export default function TranscriptImportPanel({
 
       {isSyuSource && !sourceImporter.data && (
         <p className="warning">
-          삼육대 대용량 원천 파일은 미리보기 없이 백그라운드에서 스트리밍 처리됩니다. 파일의 입학연도와
-          모집연도를 확인해 주세요.
+          삼육대 대용량 원천 파일은 미리보기 없이 백그라운드에서 처리됩니다. 파일의 입학연도와 달라도 되며,
+          선택한 검증 기준연도의 모집요강을 적용합니다. 파일 내부에 여러 입학연도가 섞여 있으면 저장되지 않습니다.
         </p>
       )}
 
@@ -307,7 +307,7 @@ export default function TranscriptImportPanel({
       <div className="stored-verification-control">
         <span>
           <strong>DB 성적검증</strong>
-          <small>선택한 대학·모집연도의 최신 완료 저장본만 사용합니다.</small>
+          <small>선택한 대학·검증 기준연도의 최신 완료 저장본과 평가 규칙을 사용합니다.</small>
         </span>
         <button
           className="primary-action"
@@ -492,6 +492,9 @@ export default function TranscriptImportPanel({
             </b>
             <small>
               {item.status === 'QUEUED' ? '대기 중' : item.status === 'PROCESSING' ? '처리 중' : item.status}
+              {item.sourceFormat === 'SYU_SOURCE_WORKBOOK_V1' && item.sourceAdmissionYear
+                ? ` · ${item.sourceAdmissionYear} 데이터 → ${item.admissionYear} 규칙`
+                : ` · ${item.admissionYear}학년도`}
               {' · '}{item.importedRows.toLocaleString()}/{item.totalRows.toLocaleString()}행 · 오류{' '}
               {item.failedRows.toLocaleString()} ·{' '}
               {new Date(item.createdAt).toLocaleString()}

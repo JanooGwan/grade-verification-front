@@ -239,6 +239,7 @@ export interface TranscriptImportHistory {
   universityId: number;
   universityName: string;
   admissionYear: number;
+  sourceAdmissionYear: number | null;
   originalFileName: string;
   importMode: TranscriptImportMode;
   fileSha256: string | null;
