@@ -119,7 +119,7 @@ export type TranscriptImportMode = 'VALID_ROWS_ONLY' | 'ALL_OR_NOTHING';
 export interface TranscriptPreview {
   originalFileName: string;
   fileSha256: string;
-  sourceFormat: 'STANDARD_TRANSCRIPT_V1' | 'HANSHIN_MULTI_SHEET_V1';
+  sourceFormat: 'STANDARD_TRANSCRIPT_V1' | 'HANSHIN_MULTI_SHEET_V1' | 'SYU_SOURCE_WORKBOOK_V1';
   applicationRows: number;
   totalRows: number;
   validRows: number;

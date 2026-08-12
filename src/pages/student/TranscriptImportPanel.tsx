@@ -328,18 +328,24 @@ export default function TranscriptImportPanel({
             <div>
               <h2>DB 성적검증 결과</h2>
               <small>
-                {verification.data.sourceFormat === 'HANSHIN_MULTI_SHEET_V1' ? '한신대 전달양식' : '표준 성적양식'}
+                {verification.data.sourceFormat === 'SYU_SOURCE_WORKBOOK_V1'
+                  ? '삼육대 원천 교과 공통 시나리오'
+                  : verification.data.sourceFormat === 'HANSHIN_MULTI_SHEET_V1'
+                    ? '한신대 전달양식'
+                    : '표준 성적양식'}
               </small>
             </div>
             <div className="import-preview-actions">
-              <button
-                className="primary-action"
-                type="button"
-                disabled={persistence.isPending}
-                onClick={() => persistence.mutate()}
-              >
-                {persistence.isPending ? '저장 중…' : '검증 결과 DB 저장'}
-              </button>
+              {verification.data.sourceFormat !== 'SYU_SOURCE_WORKBOOK_V1' && (
+                <button
+                  className="primary-action"
+                  type="button"
+                  disabled={persistence.isPending}
+                  onClick={() => persistence.mutate()}
+                >
+                  {persistence.isPending ? '저장 중…' : '검증 결과 DB 저장'}
+                </button>
+              )}
               <button type="button" disabled={exporter.isPending} onClick={() => exporter.mutate()}>
                 {exporter.isPending ? '계산 중…' : '결과 다운로드'}
               </button>
