@@ -329,7 +329,7 @@ export default function TranscriptImportPanel({
               <h2>DB 성적검증 결과</h2>
               <small>
                 {verification.data.sourceFormat === 'SYU_SOURCE_WORKBOOK_V1'
-                  ? '삼육대 원천 교과 공통 시나리오'
+                  ? '삼육대 전형·모집단위별 가상 시나리오 (화면 미리보기는 학교장추천 일반학과)'
                   : verification.data.sourceFormat === 'HANSHIN_MULTI_SHEET_V1'
                     ? '한신대 전달양식'
                     : '표준 성적양식'}
