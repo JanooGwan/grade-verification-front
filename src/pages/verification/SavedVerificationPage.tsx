@@ -34,6 +34,7 @@ function dateTime(value: string) {
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
+    second: '2-digit',
   }).format(new Date(value));
 }
 
@@ -150,7 +151,7 @@ export default function SavedVerificationPage() {
         <div className="saved-verification-filter__status">
           <small>저장 회차</small>
           <strong>{batches.data?.length.toLocaleString() ?? 0}건</strong>
-          <span>{selectedBatch ? `최근 저장 ${dateTime(selectedBatch.savedAt)}` : '조회 조건을 선택해 주세요.'}</span>
+          <span>{selectedBatch ? `최근 검증 완료 ${dateTime(selectedBatch.savedAt)}` : '조회 조건을 선택해 주세요.'}</span>
         </div>
       </section>
 
@@ -181,7 +182,7 @@ export default function SavedVerificationPage() {
               >
                 <span>업로드 #{batch.sourceImportId}</span>
                 <strong>{batch.originalFileName}</strong>
-                <small>{dateTime(batch.savedAt)} · 결과 {batch.resultCount.toLocaleString()}건</small>
+                <small>검증 완료 {dateTime(batch.savedAt)} · 결과 {batch.resultCount.toLocaleString()}건</small>
               </button>
             ))}
           </div>
@@ -200,7 +201,11 @@ export default function SavedVerificationPage() {
             <div>
               <p className="section-step">RESULTS</p>
               <h2 id="saved-verification-results-title">지원자별 검증 결과</h2>
-              <p>{selectedBatch.originalFileName} · 총 {results.data?.totalElements.toLocaleString() ?? selectedBatch.resultCount.toLocaleString()}건</p>
+              <p>
+                {selectedBatch.originalFileName} · 총{' '}
+                {results.data?.totalElements.toLocaleString() ?? selectedBatch.resultCount.toLocaleString()}건 · 검증 완료{' '}
+                {dateTime(selectedBatch.savedAt)}
+              </p>
             </div>
             <div className="saved-verification-result-actions">
               <button
@@ -272,7 +277,7 @@ export default function SavedVerificationPage() {
             <div>
               <p className="section-step">STORED DETAIL</p>
               <h2 id="saved-verification-detail-title">저장 결과 상세</h2>
-              {detail.data && <p>{detail.data.applicantNumber} · {detail.data.studentName} · 저장 {dateTime(detail.data.savedAt)}</p>}
+              {detail.data && <p>{detail.data.applicantNumber} · {detail.data.studentName} · 검증 시각 {dateTime(detail.data.savedAt)}</p>}
             </div>
             <button type="button" onClick={() => setVerificationRunId(0)}>상세 닫기</button>
           </div>
