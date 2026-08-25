@@ -816,6 +816,7 @@ h2 {
 .import-history span { display: flex; min-width: 180px; flex: 1; flex-direction: column; padding: 10px; border-radius: 8px; background: #f4f6f4; font-size: .75rem; }
 .import-history-download { align-self: flex-start; min-height: 32px; margin-top: 9px; padding: 6px 10px; border: 1px solid #8db39b; border-radius: 7px; color: #174a37; background: white; font-size: .72rem; font-weight: 750; }
 .import-history-download:hover:not(:disabled) { background: #eaf3ed; }
+.import-history-verification-pending { margin-top: 9px; color: #8a6333; line-height: 1.4; }
 .quality-warnings { margin: 0 16px 12px; padding: 10px; border-radius: 9px; background: #fff4d7; }
 .quality-warnings p { margin: 3px 0; color: #77581c; font-size: .68rem; }
 .student-profile-form, .course-editor-form { display: grid; grid-template-columns: repeat(4, 1fr) auto auto; gap: 8px; align-items: end; padding: 0 16px 16px; }

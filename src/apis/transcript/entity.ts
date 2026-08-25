@@ -249,6 +249,7 @@ export interface TranscriptImportHistory {
   status: 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'COMPLETED_WITH_ERRORS' | 'FAILED';
   sourceFormat: 'STANDARD_TRANSCRIPT_V1' | 'HANSHIN_MULTI_SHEET_V1' | 'SYU_SOURCE_WORKBOOK_V1';
   errorMessage: string | null;
+  hasSavedVerificationResults: boolean;
   createdAt: string;
 }
 

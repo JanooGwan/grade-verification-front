@@ -124,7 +124,10 @@ export default function TranscriptImportPanel({
   const persistence = useMutation({
     mutationFn: () => persistStoredTranscriptVerification(universityId, admissionYear),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['operations', 'dashboard'] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: transcriptQueryKeys.all }),
+        queryClient.invalidateQueries({ queryKey: ['operations', 'dashboard'] }),
+      ]);
     },
   });
   const importer = useMutation({
@@ -504,7 +507,8 @@ export default function TranscriptImportPanel({
               {new Date(item.createdAt).toLocaleString()}
             </small>
             {item.errorMessage && <small>{item.errorMessage}</small>}
-            {(item.status === 'COMPLETED' || item.status === 'COMPLETED_WITH_ERRORS') && (
+            {(item.status === 'COMPLETED' || item.status === 'COMPLETED_WITH_ERRORS')
+              && (item.sourceFormat === 'SYU_SOURCE_WORKBOOK_V1' || item.hasSavedVerificationResults) && (
               <button
                 className="import-history-download"
                 type="button"
@@ -515,6 +519,13 @@ export default function TranscriptImportPanel({
                   ? '내보내는 중…'
                   : '엑셀 내보내기'}
               </button>
+            )}
+            {(item.status === 'COMPLETED' || item.status === 'COMPLETED_WITH_ERRORS')
+              && item.sourceFormat !== 'SYU_SOURCE_WORKBOOK_V1'
+              && !item.hasSavedVerificationResults && (
+              <small className="import-history-verification-pending">
+                검증 결과를 DB에 저장하면 내보낼 수 있습니다.
+              </small>
             )}
           </span>
         ))}
