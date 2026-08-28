@@ -81,6 +81,7 @@ export default function TranscriptImportPanel({
   const importSubmittingRef = useRef(false);
   const [file, setFile] = useState<File | null>(null);
   const [schoolInfoFile, setSchoolInfoFile] = useState<File | null>(null);
+  const [vocationalTrainingFile, setVocationalTrainingFile] = useState<File | null>(null);
   const [mode, setMode] = useState<TranscriptImportMode>('ALL_OR_NOTHING');
   const [rememberedUniversityId, setRememberedUniversityId] = useState(storedUniversityId);
   const universities = useQuery(universityQueries.list());
@@ -131,7 +132,14 @@ export default function TranscriptImportPanel({
     },
   });
   const importer = useMutation({
-    mutationFn: () => importTranscriptExcel(admissionYear, universityId, mode, file as File, schoolInfoFile),
+    mutationFn: () => importTranscriptExcel(
+      admissionYear,
+      universityId,
+      mode,
+      file as File,
+      schoolInfoFile,
+      vocationalTrainingFile,
+    ),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: transcriptQueryKeys.all });
       verification.mutate();
@@ -215,6 +223,9 @@ export default function TranscriptImportPanel({
                 const nextUniversityId = Number(event.target.value);
                 setRememberedUniversityId(nextUniversityId);
                 rememberUniversityId(nextUniversityId);
+                if (universities.data?.find((item) => item.id === nextUniversityId)?.code !== 'KBOK') {
+                  setVocationalTrainingFile(null);
+                }
                 verification.reset();
                 persistence.reset();
                 exporter.reset();
@@ -283,6 +294,21 @@ export default function TranscriptImportPanel({
                 importer.reset();
               }}
             />
+            {selectedUniversity?.code === 'KBOK' && (
+              <ExcelFilePicker
+                id="transcript-vocational-training-file"
+                label="직업과정 위탁생 파일"
+                file={vocationalTrainingFile}
+                hint="경복대 일반계 고교 직업과정 위탁생의 학기별 이수정보가 있을 때 추가합니다."
+                onChange={(selectedFile) => {
+                  setVocationalTrainingFile(selectedFile);
+                  verification.reset();
+                  persistence.reset();
+                  exporter.reset();
+                  importer.reset();
+                }}
+              />
+            )}
           </div>
         </details>
       </form>

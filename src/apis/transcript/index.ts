@@ -73,6 +73,7 @@ export const importTranscriptExcel = (
   mode: TranscriptImportMode,
   file: File,
   schoolInfoFile?: File | null,
+  vocationalTrainingFile?: File | null,
 ) => {
   const form = new FormData();
   form.append('admissionYear', String(admissionYear));
@@ -80,6 +81,7 @@ export const importTranscriptExcel = (
   form.append('universityId', String(universityId));
   form.append('file', file);
   if (schoolInfoFile) form.append('schoolInfoFile', schoolInfoFile);
+  if (vocationalTrainingFile) form.append('vocationalTrainingFile', vocationalTrainingFile);
   return apiClient.postForm<TranscriptImportResult>('/api/transcripts/imports/excel', form);
 };
 
