@@ -5,6 +5,7 @@ import react from '@vitejs/plugin-react';
 import { defineConfig, loadEnv } from 'vite';
 
 const rootDirectory = path.dirname(fileURLToPath(import.meta.url));
+const API_PROXY_TIMEOUT_MS = 15 * 60 * 1000;
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, rootDirectory, '');
@@ -23,6 +24,8 @@ export default defineConfig(({ mode }) => {
         '/api': {
           target: env.VITE_PROXY_TARGET ?? 'http://localhost:8080',
           changeOrigin: true,
+          timeout: API_PROXY_TIMEOUT_MS,
+          proxyTimeout: API_PROXY_TIMEOUT_MS,
           headers: adminApiKey ? { 'X-Admin-Key': adminApiKey } : undefined,
         },
       },
