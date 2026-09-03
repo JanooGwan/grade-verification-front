@@ -108,8 +108,25 @@ export default function TranscriptImportPanel({
   const verification = useMutation({
     mutationFn: () => verifyStoredTranscript(universityId, admissionYear),
   });
+  const persistence = useMutation({
+    mutationFn: () => persistStoredTranscriptVerification(universityId, admissionYear),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: transcriptQueryKeys.all }),
+        queryClient.invalidateQueries({ queryKey: ['operations', 'dashboard'] }),
+      ]);
+    },
+  });
+  const latestCompletedImport = history.data?.find(
+    (item) => item.admissionYear === admissionYear
+      && (item.status === 'COMPLETED' || item.status === 'COMPLETED_WITH_ERRORS'),
+  );
+  const savedExportImportId = persistence.data?.sourceImportId
+    ?? (latestCompletedImport?.hasSavedVerificationResults ? latestCompletedImport.importId : null);
   const exporter = useMutation({
-    mutationFn: () => exportStoredTranscriptVerification(universityId, admissionYear),
+    mutationFn: () => savedExportImportId
+      ? exportSavedVerificationBatch(savedExportImportId)
+      : exportStoredTranscriptVerification(universityId, admissionYear),
     onSuccess: (result) => {
       const url = URL.createObjectURL(result);
       const link = document.createElement('a');
@@ -120,15 +137,6 @@ export default function TranscriptImportPanel({
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
-    },
-  });
-  const persistence = useMutation({
-    mutationFn: () => persistStoredTranscriptVerification(universityId, admissionYear),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: transcriptQueryKeys.all }),
-        queryClient.invalidateQueries({ queryKey: ['operations', 'dashboard'] }),
-      ]);
     },
   });
   const importer = useMutation({
