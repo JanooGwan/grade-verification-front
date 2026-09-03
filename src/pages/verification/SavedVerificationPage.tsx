@@ -3,11 +3,13 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 
 import { ApiError } from '@/apis/client';
 import {
-  exportSavedVerificationBatch,
+  downloadPreparedSavedVerificationExport,
   getSavedVerificationBatches,
   getSavedVerificationDetail,
   getSavedVerificationResults,
+  prepareSavedVerificationExport,
 } from '@/apis/transcript';
+import type { SavedVerificationBatch } from '@/apis/transcript/entity';
 import { universityQueries } from '@/apis/university/queries';
 import VerificationDetail from '@/components/VerificationDetail';
 
@@ -67,21 +69,12 @@ export default function SavedVerificationPage() {
     enabled: verificationRunId > 0,
   });
   const exporter = useMutation({
-    mutationFn: () => exportSavedVerificationBatch(selectedBatch?.sourceImportId ?? 0),
-    onSuccess: (result) => {
-      if (!selectedBatch) return;
-      const baseName = selectedBatch.originalFileName.replace(/\.[^.]+$/, '');
-      const url = URL.createObjectURL(result);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${baseName}-검증결과.xlsx`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
+    mutationFn: (batch: SavedVerificationBatch) => prepareSavedVerificationExport(batch.sourceImportId),
+    onSuccess: (job, batch) => {
+      const baseName = batch.originalFileName.replace(/\.[^.]+$/, '');
+      downloadPreparedSavedVerificationExport(job.exportId, `${baseName}-검증결과.xlsx`);
     },
   });
-
   const resetSelection = () => {
     setSourceImportId(0);
     setVerificationRunId(0);
@@ -98,7 +91,7 @@ export default function SavedVerificationPage() {
     setVerificationRunId(0);
   };
 
-  const requestError = universities.error ?? batches.error ?? results.error ?? detail.error ?? exporter.error;
+  const requestError = exporter.error ?? universities.error ?? batches.error ?? results.error ?? detail.error;
 
   return (
     <main className="saved-verification-page">
@@ -212,9 +205,9 @@ export default function SavedVerificationPage() {
                 className="saved-verification-export"
                 type="button"
                 disabled={exporter.isPending}
-                onClick={() => exporter.mutate()}
+                onClick={() => exporter.mutate(selectedBatch)}
               >
-                {exporter.isPending ? '내보내는 중…' : '엑셀 내보내기'}
+                {exporter.isPending ? '파일 생성 중…' : '엑셀 내보내기'}
               </button>
               <form className="saved-verification-search" onSubmit={submitSearch}>
                 <input

@@ -1,5 +1,5 @@
 import { apiClient } from '@/apis/client';
-import type { SavedVerificationBatch, SavedVerificationDetail, SavedVerificationPage, SourceImportStartResult, StoredVerificationPersistenceResult, StudentPage, StudentTranscript, TranscriptImportHistory, TranscriptImportMode, TranscriptImportResult, TranscriptPreview, TranscriptCourse, UpdateStudentCommonDataRequest, UpdateStudentRequest, UpsertTranscriptCourseRequest } from './entity';
+import type { SavedVerificationBatch, SavedVerificationDetail, SavedVerificationExportJob, SavedVerificationPage, SourceImportStartResult, StoredVerificationPersistenceResult, StudentPage, StudentTranscript, TranscriptImportHistory, TranscriptImportMode, TranscriptImportResult, TranscriptPreview, TranscriptCourse, UpdateStudentCommonDataRequest, UpdateStudentRequest, UpsertTranscriptCourseRequest } from './entity';
 
 export interface StudentSearchParams {
   universityId: number;
@@ -59,13 +59,33 @@ export const getSavedVerificationResults = (
 export const getSavedVerificationDetail = (verificationRunId: number) =>
   apiClient.get<SavedVerificationDetail>(`/api/transcripts/saved-verifications/${verificationRunId}`);
 
-export const exportSavedVerificationBatch = (sourceImportId: number) =>
-  apiClient.getBlob(`/api/transcripts/saved-verifications/batches/${sourceImportId}/export`);
-
-export const exportStoredTranscriptVerification = (universityId: number, admissionYear: number) =>
-  apiClient.getBlob(
-    `/api/transcripts/verifications/export?universityId=${universityId}&admissionYear=${admissionYear}`,
+const startSavedVerificationExport = (sourceImportId: number) =>
+  apiClient.post<SavedVerificationExportJob>(
+    `/api/transcripts/saved-verifications/batches/${sourceImportId}/exports`,
+    {},
   );
+
+const getSavedVerificationExport = (exportId: string) =>
+  apiClient.get<SavedVerificationExportJob>(`/api/transcripts/saved-verifications/exports/${exportId}`);
+
+export const prepareSavedVerificationExport = async (sourceImportId: number) => {
+  let job = await startSavedVerificationExport(sourceImportId);
+  const deadline = Date.now() + 20 * 60 * 1000;
+  while (job.status === 'PROCESSING' && Date.now() < deadline) {
+    await new Promise((resolve) => window.setTimeout(resolve, 2000));
+    job = await getSavedVerificationExport(job.exportId);
+  }
+  if (job.status === 'FAILED') {
+    throw new Error(job.message ?? 'Excel 파일을 생성하지 못했습니다.');
+  }
+  if (job.status !== 'READY') {
+    throw new Error('Excel 파일 생성 시간이 초과되었습니다.');
+  }
+  return job;
+};
+
+export const downloadPreparedSavedVerificationExport = (exportId: string, fileName: string) =>
+  apiClient.download(`/api/transcripts/saved-verifications/exports/${exportId}/file`, fileName);
 
 export const importTranscriptExcel = (
   admissionYear: number,
@@ -88,8 +108,8 @@ export const importTranscriptExcel = (
 export const getTranscriptImports = (universityId: number) =>
   apiClient.get<TranscriptImportHistory[]>(`/api/transcripts/imports?universityId=${universityId}`);
 
-export const getTranscriptImportResultExcel = (importId: number) =>
-  apiClient.getBlob(`/api/transcripts/imports/${importId}/result`);
+export const downloadTranscriptImportResultExcel = (importId: number, fileName: string) =>
+  apiClient.download(`/api/transcripts/imports/${importId}/result`, fileName);
 
 export const importSyuSourceExcel = (admissionYear: number, universityId: number, file: File) => {
   const form = new FormData();

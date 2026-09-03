@@ -176,6 +176,13 @@ export interface SavedVerificationBatch {
   savedAt: string;
 }
 
+export interface SavedVerificationExportJob {
+  exportId: string;
+  sourceImportId: number;
+  status: 'PROCESSING' | 'READY' | 'FAILED';
+  message: string | null;
+}
+
 export interface SavedVerificationResultRow {
   verificationRunId: number;
   studentId: number;

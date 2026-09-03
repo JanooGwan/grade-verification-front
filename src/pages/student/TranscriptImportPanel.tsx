@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { ApiError } from '@/apis/client';
-import { exportSavedVerificationBatch, exportStoredTranscriptVerification, getTranscriptImportResultExcel, importSyuSourceExcel, importTranscriptExcel, persistStoredTranscriptVerification, verifyStoredTranscript } from '@/apis/transcript';
+import { downloadPreparedSavedVerificationExport, downloadTranscriptImportResultExcel, importSyuSourceExcel, importTranscriptExcel, persistStoredTranscriptVerification, prepareSavedVerificationExport, verifyStoredTranscript } from '@/apis/transcript';
 import type { TranscriptImportHistory, TranscriptImportMode } from '@/apis/transcript/entity';
 import { transcriptQueries, transcriptQueryKeys } from '@/apis/transcript/queries';
 import { universityQueries } from '@/apis/university/queries';
@@ -124,19 +124,25 @@ export default function TranscriptImportPanel({
   const savedExportImportId = persistence.data?.sourceImportId
     ?? (latestCompletedImport?.hasSavedVerificationResults ? latestCompletedImport.importId : null);
   const exporter = useMutation({
-    mutationFn: () => savedExportImportId
-      ? exportSavedVerificationBatch(savedExportImportId)
-      : exportStoredTranscriptVerification(universityId, admissionYear),
-    onSuccess: (result) => {
-      const url = URL.createObjectURL(result);
-      const link = document.createElement('a');
+    mutationFn: () => prepareSavedVerificationExport(savedExportImportId as number),
+    onSuccess: (job) => {
       const baseName = file?.name.replace(/\.[^.]+$/, '') || '가져오기';
-      link.href = url;
-      link.download = `${baseName}-검증결과.xlsx`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
+      const fileName = `${baseName}-검증결과.xlsx`;
+      downloadPreparedSavedVerificationExport(job.exportId, fileName);
+    },
+  });
+  const historyExporter = useMutation({
+    mutationFn: (item: TranscriptImportHistory) => item.sourceFormat === 'SYU_SOURCE_WORKBOOK_V1'
+      ? Promise.resolve(null)
+      : prepareSavedVerificationExport(item.importId),
+    onSuccess: (job, item) => {
+      const baseName = item.originalFileName.replace(/\.[^.]+$/, '') || `가져오기-${item.importId}`;
+      const fileName = `${baseName}-${item.sourceFormat === 'SYU_SOURCE_WORKBOOK_V1' ? '환산결과' : '검증결과'}.xlsx`;
+      if (job) {
+        downloadPreparedSavedVerificationExport(job.exportId, fileName);
+      } else {
+        downloadTranscriptImportResultExcel(item.importId, fileName);
+      }
     },
   });
   const importer = useMutation({
@@ -165,23 +171,6 @@ export default function TranscriptImportPanel({
       importSubmittingRef.current = false;
     },
   });
-  const historyExporter = useMutation({
-    mutationFn: (item: TranscriptImportHistory) => item.sourceFormat === 'SYU_SOURCE_WORKBOOK_V1'
-      ? getTranscriptImportResultExcel(item.importId)
-      : exportSavedVerificationBatch(item.importId),
-    onSuccess: (result, item) => {
-      const baseName = item.originalFileName.replace(/\.[^.]+$/, '') || `가져오기-${item.importId}`;
-      const url = URL.createObjectURL(result);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${baseName}-${item.sourceFormat === 'SYU_SOURCE_WORKBOOK_V1' ? '환산결과' : '검증결과'}.xlsx`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
-    },
-  });
-
   const submitImport = (event: FormEvent) => {
     event.preventDefault();
     if (!file || importSubmittingRef.current || importer.isPending || sourceImporter.isPending) return;
@@ -192,7 +181,8 @@ export default function TranscriptImportPanel({
     if (isSyuSource) sourceImporter.mutate();
     else importer.mutate();
   };
-  const error = sourceImporter.error ?? verification.error ?? persistence.error ?? exporter.error ?? importer.error ?? historyExporter.error ?? universities.error ?? history.error;
+  const error = historyExporter.error ?? exporter.error ?? sourceImporter.error ?? verification.error
+    ?? persistence.error ?? importer.error ?? universities.error ?? history.error;
   const verificationResult = verification.data?.verification;
 
   return (
@@ -381,8 +371,16 @@ export default function TranscriptImportPanel({
               >
                 {persistence.isPending ? '저장 중…' : '검증 결과 DB 저장'}
               </button>
-              <button type="button" disabled={exporter.isPending} onClick={() => exporter.mutate()}>
-                {exporter.isPending ? '계산 중…' : '결과 다운로드'}
+              <button
+                type="button"
+                disabled={!savedExportImportId || exporter.isPending}
+                onClick={() => exporter.mutate()}
+              >
+                {exporter.isPending
+                  ? '파일 생성 중…'
+                  : savedExportImportId
+                    ? '결과 다운로드'
+                    : 'DB 저장 후 다운로드'}
               </button>
             </div>
           </div>
@@ -550,7 +548,7 @@ export default function TranscriptImportPanel({
                 onClick={() => historyExporter.mutate(item)}
               >
                 {historyExporter.isPending && historyExporter.variables?.importId === item.importId
-                  ? '내보내는 중…'
+                  ? '파일 생성 중…'
                   : '엑셀 내보내기'}
               </button>
             )}

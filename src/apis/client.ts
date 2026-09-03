@@ -107,6 +107,15 @@ async function requestBlob(endpoint: string): Promise<Blob> {
   return response.blob();
 }
 
+function downloadFile(endpoint: string, fileName: string) {
+  const link = document.createElement('a');
+  link.href = joinUrl(BASE_URL, endpoint);
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
 export const apiClient = {
   get: <T>(endpoint: string) => request<T>(endpoint, { method: 'GET' }),
   getBlob: (endpoint: string) => requestBlob(endpoint),
@@ -116,4 +125,5 @@ export const apiClient = {
   put: <T>(endpoint: string, body: unknown) => request<T>(endpoint, { method: 'PUT', body }),
   patch: <T>(endpoint: string, body: unknown) => request<T>(endpoint, { method: 'PATCH', body }),
   delete: (endpoint: string) => request<void>(endpoint, { method: 'DELETE' }),
+  download: (endpoint: string, fileName: string) => downloadFile(endpoint, fileName),
 };
