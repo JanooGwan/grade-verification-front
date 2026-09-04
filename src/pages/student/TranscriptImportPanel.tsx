@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { ApiError } from '@/apis/client';
-import { downloadPreparedSavedVerificationExport, downloadTranscriptImportResultExcel, importSyuSourceExcel, importTranscriptExcel, persistStoredTranscriptVerification, prepareSavedVerificationExport, verifyStoredTranscript } from '@/apis/transcript';
+import { downloadPreparedSavedVerificationExport, downloadTranscriptImportResultExcel, importMjcSourceExcel, importSyuSourceExcel, importTranscriptExcel, persistStoredTranscriptVerification, prepareSavedVerificationExport, verifyStoredTranscript } from '@/apis/transcript';
 import type { TranscriptImportHistory, TranscriptImportMode } from '@/apis/transcript/entity';
 import { transcriptQueries, transcriptQueryKeys } from '@/apis/transcript/queries';
 import { universityQueries } from '@/apis/university/queries';
@@ -105,6 +105,8 @@ export default function TranscriptImportPanel({
       && selectedUniversity?.name.includes('삼육')
       && (file.size > 40 * 1024 * 1024 || file.name.includes('데이터전달')),
   );
+  const isMjcSource = selectedUniversity?.code === 'MJC';
+  const isSourceImport = isSyuSource || isMjcSource;
   const verification = useMutation({
     mutationFn: () => verifyStoredTranscript(universityId, admissionYear),
   });
@@ -163,7 +165,9 @@ export default function TranscriptImportPanel({
     },
   });
   const sourceImporter = useMutation({
-    mutationFn: () => importSyuSourceExcel(admissionYear, universityId, file as File),
+    mutationFn: () => isMjcSource
+      ? importMjcSourceExcel(admissionYear, universityId, file as File)
+      : importSyuSourceExcel(admissionYear, universityId, file as File),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: transcriptQueryKeys.all });
     },
@@ -178,7 +182,7 @@ export default function TranscriptImportPanel({
     verification.reset();
     persistence.reset();
     exporter.reset();
-    if (isSyuSource) sourceImporter.mutate();
+    if (isSourceImport) sourceImporter.mutate();
     else importer.mutate();
   };
   const error = historyExporter.error ?? exporter.error ?? sourceImporter.error ?? verification.error
@@ -245,6 +249,9 @@ export default function TranscriptImportPanel({
             id="transcript-file"
             label="성적 파일"
             file={file}
+            hint={isMjcSource
+              ? '00~07 원천 CSV를 시트별로 묶은 명지전문대 통합 Excel을 선택합니다.'
+              : undefined}
             onChange={(selectedFile) => {
               setFile(selectedFile);
               verification.reset();
@@ -259,7 +266,7 @@ export default function TranscriptImportPanel({
               ? '업로드 중…'
               : importer.isPending
                 ? '저장 중…'
-                : isSyuSource
+                : isSourceImport
                   ? '대용량 DB 저장'
                   : 'DB 저장'}
           </button>
