@@ -249,9 +249,6 @@ export default function TranscriptImportPanel({
             id="transcript-file"
             label="성적 파일"
             file={file}
-            hint={isMjcSource
-              ? '00~07 원천 CSV를 시트별로 묶은 명지전문대 통합 Excel을 선택합니다.'
-              : undefined}
             onChange={(selectedFile) => {
               setFile(selectedFile);
               verification.reset();
