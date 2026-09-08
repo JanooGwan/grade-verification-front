@@ -165,6 +165,17 @@ export interface StoredVerificationPersistenceResult {
   savedAt: string;
 }
 
+export interface StoredVerificationJob {
+  jobId: string;
+  universityId: number;
+  admissionYear: number;
+  status: 'PROCESSING' | 'COMPLETED' | 'FAILED';
+  message: string | null;
+  startedAt: string;
+  completedAt: string | null;
+  result: StoredVerificationPersistenceResult | null;
+}
+
 export interface SavedVerificationBatch {
   sourceImportId: number;
   universityId: number;

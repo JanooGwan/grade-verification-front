@@ -1,5 +1,5 @@
 import { apiClient } from '@/apis/client';
-import type { SavedVerificationBatch, SavedVerificationDetail, SavedVerificationExportJob, SavedVerificationPage, SourceImportStartResult, StoredVerificationPersistenceResult, StudentPage, StudentTranscript, TranscriptImportHistory, TranscriptImportMode, TranscriptImportResult, TranscriptPreview, TranscriptCourse, UpdateStudentCommonDataRequest, UpdateStudentRequest, UpsertTranscriptCourseRequest } from './entity';
+import type { SavedVerificationBatch, SavedVerificationDetail, SavedVerificationExportJob, SavedVerificationPage, SourceImportStartResult, StoredVerificationJob, StoredVerificationPersistenceResult, StudentPage, StudentTranscript, TranscriptImportHistory, TranscriptImportMode, TranscriptImportResult, TranscriptPreview, TranscriptCourse, UpdateStudentCommonDataRequest, UpdateStudentRequest, UpsertTranscriptCourseRequest } from './entity';
 
 export interface StudentSearchParams {
   universityId: number;
@@ -35,6 +35,42 @@ export const persistStoredTranscriptVerification = (universityId: number, admiss
     `/api/transcripts/verifications/persist?universityId=${universityId}&admissionYear=${admissionYear}`,
     {},
   );
+
+const startStoredTranscriptVerification = (universityId: number, admissionYear: number) =>
+  apiClient.post<StoredVerificationJob>(
+    `/api/transcripts/verifications/jobs?universityId=${universityId}&admissionYear=${admissionYear}`,
+    {},
+  );
+
+const getStoredTranscriptVerificationJob = (jobId: string) =>
+  apiClient.get<StoredVerificationJob>(`/api/transcripts/verifications/jobs/${jobId}`);
+
+export const runStoredTranscriptVerification = async (universityId: number, admissionYear: number) => {
+  let job = await startStoredTranscriptVerification(universityId, admissionYear);
+  const deadline = Date.now() + 3 * 60 * 60 * 1000;
+  let consecutiveConnectionFailures = 0;
+  while (job.status === 'PROCESSING' && Date.now() < deadline) {
+    await new Promise((resolve) => window.setTimeout(resolve, 3000));
+    try {
+      job = await getStoredTranscriptVerificationJob(job.jobId);
+      consecutiveConnectionFailures = 0;
+    } catch (error) {
+      consecutiveConnectionFailures += 1;
+      if (consecutiveConnectionFailures < 5) continue;
+      throw new Error('서버 연결이 반복해서 끊겼습니다. 백엔드 실행 상태를 확인한 뒤 다시 시도해 주세요.', {
+        cause: error,
+      });
+    }
+  }
+  if (job.status === 'FAILED') {
+    throw new Error(job.message ?? '성적 검증에 실패했습니다.');
+  }
+  if (job.status !== 'COMPLETED' || !job.result) {
+    throw new Error('성적 검증 시간이 초과되었습니다. 작업 상태를 다시 확인해 주세요.');
+  }
+  const preview = await getSavedVerificationResults(job.result.sourceImportId, '', 0, 20);
+  return { job, preview };
+};
 
 export const getSavedVerificationBatches = (universityId: number, admissionYear: number) =>
   apiClient.get<SavedVerificationBatch[]>(
