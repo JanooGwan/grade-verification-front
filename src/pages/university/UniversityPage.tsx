@@ -148,7 +148,7 @@ export default function UniversityPage() {
       <ConfirmDialog
         open={universityPendingDelete !== null}
         title="대학교를 삭제할까요?"
-        description={universityPendingDelete ? `${universityPendingDelete.name}와 연결된 규칙 또는 지원 정보가 있으면 삭제할 수 없습니다.` : ''}
+        description={universityPendingDelete ? `${universityPendingDelete.name}에 연결된 학생·지원·검증·업로드·반영 기준 데이터가 모두 영구 삭제됩니다.` : ''}
         confirmLabel="대학교 삭제"
         pending={deleteMutation.isPending}
         danger

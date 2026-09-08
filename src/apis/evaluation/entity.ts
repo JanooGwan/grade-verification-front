@@ -6,6 +6,8 @@ export type AchievementLevel = 'A' | 'B' | 'C' | 'D' | 'E';
 export type RoundingMode = 'HALF_UP' | 'DOWN' | 'UP' | 'FLOOR' | 'CEILING';
 export type EvaluationRuleStatus = 'DRAFT' | 'VERIFIED' | 'PUBLISHED' | 'RETIRED';
 export type RuleExtractionStatus = 'EXTRACTED' | 'DRAFT_CREATED';
+export type GradeScale = 'NINE_LEVEL' | 'FIVE_LEVEL' | 'LEGACY';
+export type LegacyAchievement = 'SU' | 'WOO' | 'MI' | 'YANG' | 'GA';
 
 export interface EvaluationRule {
   id: number;
@@ -22,11 +24,15 @@ export interface EvaluationRule {
   selectionStrategy: SelectionStrategy;
   selectionCount: number;
   achievementSelectionCount: number;
+  minimumCourseCount: number;
   scoreAggregation: ScoreAggregation;
   achievementConversion: AchievementConversion;
+  inputGradeScale: GradeScale;
+  legacyAchievementGrades: number[];
   includeThirdYearSecondSemester: boolean;
   includeThirdYearSecondSemesterForGraduates: boolean;
   includeProfessionalCourses: boolean;
+  applyGradeWeights: boolean;
   normalizeGradeWeights: boolean;
   intermediateScale: number;
   intermediateRounding: RoundingMode;
@@ -74,6 +80,7 @@ export interface RuleExtraction {
     selectionStrategy: SelectionStrategy | null;
     selectionCount: number | null;
     gradeWeights: number[];
+    applyGradeWeights: boolean | null;
     gradeScores: number[];
     achievementScores: number[];
     subjectCategories: SubjectCategory[];
@@ -126,11 +133,15 @@ export interface CourseGrade {
   subjectCategory: SubjectCategory;
   courseName: string;
   grade: number | null;
+  gradeScale: GradeScale;
   achievement: AchievementLevel | null;
   rawScore: number | null;
   meanScore: number | null;
   standardDeviation: number | null;
   studentCount: number | null;
+  rankPosition: number | null;
+  tiedRankCount: number | null;
+  legacyAchievement: LegacyAchievement | null;
   careerSubject: boolean;
   professionalCourse: boolean;
   credits: number;
@@ -144,23 +155,46 @@ export interface GradeVerification {
   admissionType: string;
   recruitmentUnit: string;
   finalScore: number;
-  averageGrade: number;
+  baseScore: number;
+  averageGrade: number | null;
   selectionStrategy: SelectionStrategy;
   scoreAggregation: ScoreAggregation;
   sourceDocument: string | null;
   sourcePages: string | null;
   includedCourseCount: number;
   excludedCourseCount: number;
+  calculationSummary: CalculationSummary | null;
   calculations: Array<CourseGrade & {
     appliedSubjectCategory: SubjectCategory | null;
+    rankPercentile: number | null;
     convertedScore: number | null;
     effectiveGrade: number | null;
     gradeWeight: number;
     subjectWeight: number;
     appliedWeight: number;
+    appliedCredits: number;
     weightedScore: number;
     included: boolean;
     exclusionReason: string | null;
   }>;
   warnings: string[];
+}
+
+export interface CalculationSummary {
+  formula: string;
+  gradeTimesCreditsSum: number;
+  convertedScoreTimesCreditsSum: number;
+  gradeTimesWeightSum: number;
+  convertedScoreTimesWeightSum: number;
+  totalAppliedWeight: number;
+  totalIncludedCredits: number;
+  averageGrade: number | null;
+  baseScore: number;
+  scoreMultiplier: number;
+  scoreBeforeFinalRounding: number;
+  intermediateScale: number;
+  intermediateRounding: RoundingMode;
+  finalScale: number;
+  finalRounding: RoundingMode;
+  yearWeightDenominators: Record<string, number>;
 }

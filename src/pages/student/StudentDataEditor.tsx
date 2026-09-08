@@ -1,24 +1,44 @@
 import { useState, type FormEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createTranscriptCourse, deleteStudent, deleteTranscriptCourse, updateStudent, updateTranscriptCourse } from '@/apis/transcript';
-import type { StudentTranscript, TranscriptCourse, UpsertTranscriptCourseRequest } from '@/apis/transcript/entity';
+import { createTranscriptCourse, deleteStudent, deleteTranscriptCourse, updateStudent, updateStudentCommonData, updateTranscriptCourse } from '@/apis/transcript';
+import type { GedSubjectType, LegacyAchievement, StudentAttendance, StudentTranscript, TranscriptCourse, UpdateStudentCommonDataRequest, UpsertTranscriptCourseRequest } from '@/apis/transcript/entity';
 import type { AchievementLevel, SubjectCategory } from '@/apis/evaluation/entity';
 import { transcriptQueryKeys } from '@/apis/transcript/queries';
 import { ApiError } from '@/apis/client';
 import ConfirmDialog from '@/components/ConfirmDialog';
 
 const subjects: SubjectCategory[] = ['KOREAN', 'MATH', 'ENGLISH', 'SOCIAL', 'SCIENCE', 'OTHER'];
-const blankCourse = (): UpsertTranscriptCourseRequest => ({ schoolYear: 1, semester: 1, subjectCategory: 'KOREAN', courseName: '', grade: 1, achievement: null, rawScore: null, meanScore: null, standardDeviation: null, studentCount: null, credits: 3, careerSubject: false, professionalCourse: false });
+const gedSubjects: Array<[GedSubjectType, string]> = [['KOREAN', '국어'], ['ENGLISH', '영어'], ['MATH', '수학'], ['KOREAN_HISTORY', '한국사'], ['SOCIAL', '사회'], ['SCIENCE', '과학']];
+const blankCourse = (): UpsertTranscriptCourseRequest => ({ schoolYear: 1, semester: 1, subjectCategory: 'KOREAN', courseName: '', grade: 1, gradeScale: 'NINE_LEVEL', achievement: null, rawScore: null, meanScore: null, standardDeviation: null, studentCount: null, rankPosition: null, tiedRankCount: null, legacyAchievement: null, credits: 3, careerSubject: false, professionalCourse: false });
+const attendanceRows = (transcript: StudentTranscript): StudentAttendance[] => [1, 2, 3].map((schoolYear) => transcript.attendance.find((item) => item.schoolYear === schoolYear) ?? ({ schoolYear, unexcusedAbsenceDays: 0, unexcusedTardyCount: 0, unexcusedEarlyLeaveCount: 0, unexcusedClassAbsenceCount: 0 }));
+const commonData = (transcript: StudentTranscript): UpdateStudentCommonDataRequest => ({
+  educationBackground: transcript.educationBackground,
+  highSchoolType: transcript.highSchoolType,
+  graduationStatus: transcript.graduationStatus,
+  gedAverageScore: transcript.gedAverageScore,
+  gedSubjectScores: transcript.gedSubjectScores.map((score) => ({ subjectType: score.subjectType, subjectName: score.subjectName, score: score.score })),
+  legacyGradeSummaries: transcript.legacyGradeSummaries.map((summary) => ({ summaryType: summary.summaryType, schoolYear: summary.schoolYear, semester: summary.semester, rankPosition: summary.rankPosition, tiedRankCount: summary.tiedRankCount, cohortSize: summary.cohortSize, credits: summary.credits })),
+  attendance: attendanceRows(transcript),
+  schoolViolenceActions: transcript.schoolViolenceActions.map((action) => ({
+    schoolYear: action.schoolYear,
+    actionNumber: action.actionNumber,
+    actionDate: action.actionDate,
+    active: action.active,
+    note: action.note ?? '',
+  })),
+});
 function message(error: unknown) { return error instanceof ApiError ? error.response?.message ?? error.message : error instanceof Error ? error.message : '저장하지 못했습니다.'; }
 
 export default function StudentDataEditor({ transcript, onDeleted }: { transcript: StudentTranscript; onDeleted: () => void }) {
   const queryClient = useQueryClient();
   const [profile, setProfile] = useState({ name: transcript.name, highSchoolCode: transcript.highSchoolCode ?? '', highSchoolName: transcript.highSchoolName ?? '', graduationYear: transcript.graduationYear });
+  const [common, setCommon] = useState<UpdateStudentCommonDataRequest>(() => commonData(transcript));
   const [courseId, setCourseId] = useState(0);
   const [course, setCourse] = useState<UpsertTranscriptCourseRequest>(blankCourse());
   const [pendingDelete, setPendingDelete] = useState<'student' | 'course' | null>(null);
   const refresh = () => queryClient.invalidateQueries({ queryKey: transcriptQueryKeys.all });
   const profileMutation = useMutation({ mutationFn: () => updateStudent(transcript.studentId, profile), onSuccess: refresh });
+  const commonMutation = useMutation({ mutationFn: () => updateStudentCommonData(transcript.studentId, common), onSuccess: refresh });
   const courseMutation = useMutation({ mutationFn: () => courseId ? updateTranscriptCourse(transcript.studentId, courseId, course) : createTranscriptCourse(transcript.studentId, course), onSuccess: async () => { setCourseId(0); setCourse(blankCourse()); await refresh(); } });
   const deleteCourseMutation = useMutation({ mutationFn: (id: number) => deleteTranscriptCourse(transcript.studentId, id), onSuccess: async () => { setPendingDelete(null); await refresh(); } });
   const deleteStudentMutation = useMutation({ mutationFn: () => deleteStudent(transcript.studentId), onSuccess: async () => { setPendingDelete(null); await refresh(); onDeleted(); } });
@@ -27,7 +47,12 @@ export default function StudentDataEditor({ transcript, onDeleted }: { transcrip
     const selected = transcript.courses.find((item) => item.id === id);
     setCourse(selected ? toRequest(selected) : blankCourse());
   };
-  const error = profileMutation.error ?? courseMutation.error ?? deleteCourseMutation.error ?? deleteStudentMutation.error;
+  const error = profileMutation.error ?? commonMutation.error ?? courseMutation.error ?? deleteCourseMutation.error ?? deleteStudentMutation.error;
+  const courseInputMode = course.rankPosition !== null ? 'RANK' : course.legacyAchievement !== null ? 'LEGACY' : course.grade === null ? 'ACHIEVEMENT' : 'GRADE';
+  const updateAttendance = (index: number, field: keyof Omit<StudentAttendance, 'schoolYear'>, value: number) => setCommon({
+    ...common,
+    attendance: common.attendance.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value } : item),
+  });
   return <details className="student-data-editor">
     <summary><span><b>학생·과목 데이터 편집</b><small>기본정보와 개별 교과성적을 직접 보정합니다.</small></span><i>{transcript.dataQualityWarnings.length ? `경고 ${transcript.dataQualityWarnings.length}` : '데이터 정상'}</i></summary>
     {transcript.dataQualityWarnings.length > 0 && <div className="quality-warnings">{transcript.dataQualityWarnings.map((warning) => <p key={warning}>⚠ {warning}</p>)}</div>}
@@ -40,14 +65,67 @@ export default function StudentDataEditor({ transcript, onDeleted }: { transcrip
       <label>졸업연도<input type="number" value={profile.graduationYear ?? ''} onChange={(event) => setProfile({ ...profile, graduationYear: event.target.value ? Number(event.target.value) : null })} /></label>
       <button>기본정보 저장</button><button className="danger-action" type="button" onClick={() => setPendingDelete('student')}>학생 삭제</button>
     </form>
+    <form className="student-common-data-form" onSubmit={(event) => { event.preventDefault(); commonMutation.mutate(); }}>
+      <div className="course-editor-heading"><strong>대학 공통 평가 데이터</strong><small>모든 대학 전형 계산에서 공통으로 사용됩니다.</small></div>
+      <div className="student-common-profile">
+        <label>학력 유형<select value={common.educationBackground} onChange={(event) => { const educationBackground = event.target.value as UpdateStudentCommonDataRequest['educationBackground']; setCommon({ ...common, educationBackground, highSchoolType: educationBackground === 'DOMESTIC_HIGH_SCHOOL' ? common.highSchoolType : 'GENERAL', gedAverageScore: educationBackground === 'GED' ? common.gedAverageScore : null, gedSubjectScores: educationBackground === 'GED' ? common.gedSubjectScores : [], legacyGradeSummaries: educationBackground === 'DOMESTIC_HIGH_SCHOOL' ? common.legacyGradeSummaries : [] }); }}><option value="DOMESTIC_HIGH_SCHOOL">국내 고등학교</option><option value="GED">검정고시</option><option value="FOREIGN_HIGH_SCHOOL">외국 고등학교</option></select></label>
+        {common.educationBackground === 'DOMESTIC_HIGH_SCHOOL' && <label>고교 유형<select value={common.highSchoolType} onChange={(event) => setCommon({ ...common, highSchoolType: event.target.value as UpdateStudentCommonDataRequest['highSchoolType'] })}><option value="GENERAL">일반고</option><option value="SPECIALIZED">특성화고</option><option value="COMPREHENSIVE_VOCATIONAL">종합고 전문계열</option><option value="LIFELONG_EDUCATION_FACILITY">학력인정 평생교육시설</option><option value="TWO_YEAR">2년제 고등학교</option></select></label>}
+        <label>졸업 상태<select value={common.graduationStatus} onChange={(event) => setCommon({ ...common, graduationStatus: event.target.value as UpdateStudentCommonDataRequest['graduationStatus'] })}><option value="EXPECTED_GRADUATE">고교 졸업예정자</option><option value="GRADUATE">고교 졸업자</option></select></label>
+        {common.educationBackground === 'GED' && <label>검정고시 전 과목 평균(선택)<input type="number" min="0" max="100" step="0.01" value={common.gedAverageScore ?? ''} onChange={(event) => setCommon({ ...common, gedAverageScore: event.target.value ? Number(event.target.value) : null })} /></label>}
+      </div>
+      {common.educationBackground === 'GED' && <div className="student-common-section">
+        <div className="course-editor-heading"><strong>검정고시 과목별 원점수</strong><button type="button" onClick={() => setCommon({ ...common, gedSubjectScores: [...common.gedSubjectScores, { subjectType: 'ELECTIVE', subjectName: `선택${common.gedSubjectScores.filter((item) => item.subjectType === 'ELECTIVE').length + 1}`, score: 100 }] })}>선택과목 추가</button></div>
+        {gedSubjects.map(([subjectType, subjectName]) => {
+          const index = common.gedSubjectScores.findIndex((item) => item.subjectType === subjectType);
+          const value = index >= 0 ? common.gedSubjectScores[index].score : '';
+          return <label key={subjectType}>{subjectName}<input type="number" min="0" max="100" step="0.01" value={value} onChange={(event) => {
+            const score = Number(event.target.value);
+            const next = index >= 0 ? common.gedSubjectScores.map((item, itemIndex) => itemIndex === index ? { ...item, score } : item) : [...common.gedSubjectScores, { subjectType, subjectName, score }];
+            setCommon({ ...common, gedSubjectScores: next });
+          }} /></label>;
+        })}
+        {common.gedSubjectScores.map((item, index) => item.subjectType === 'ELECTIVE' && <div className="student-violence-row" key={`${item.subjectName}-${index}`}><label>선택과목명<input value={item.subjectName} onChange={(event) => setCommon({ ...common, gedSubjectScores: common.gedSubjectScores.map((score, itemIndex) => itemIndex === index ? { ...score, subjectName: event.target.value } : score) })} /></label><label>점수<input type="number" min="0" max="100" step="0.01" value={item.score} onChange={(event) => setCommon({ ...common, gedSubjectScores: common.gedSubjectScores.map((score, itemIndex) => itemIndex === index ? { ...score, score: Number(event.target.value) } : score) })} /></label><button className="danger-action" type="button" onClick={() => setCommon({ ...common, gedSubjectScores: common.gedSubjectScores.filter((_, itemIndex) => itemIndex !== index) })}>삭제</button></div>)}
+      </div>}
+      {common.educationBackground === 'DOMESTIC_HIGH_SCHOOL' && <div className="student-common-section">
+        <div className="course-editor-heading"><strong>구교육과정 학기·학년 석차</strong><button type="button" onClick={() => setCommon({ ...common, legacyGradeSummaries: [...common.legacyGradeSummaries, { summaryType: 'SEMESTER', schoolYear: 1, semester: 1, rankPosition: 1, tiedRankCount: 1, cohortSize: 1, credits: 1 }] })}>석차 요약 추가</button></div>
+        {common.legacyGradeSummaries.map((item, index) => <div className="student-violence-row" key={index}><label>범위<select value={item.summaryType} onChange={(event) => { const summaryType = event.target.value as typeof item.summaryType; setCommon({ ...common, legacyGradeSummaries: common.legacyGradeSummaries.map((summary, itemIndex) => itemIndex === index ? { ...summary, summaryType, semester: summaryType === 'YEAR' ? null : summary.semester ?? 1 } : summary) }); }}><option value="SEMESTER">학기 계열석차</option><option value="YEAR">학년 석차</option></select></label><label>학년<input type="number" min="1" max="3" value={item.schoolYear} onChange={(event) => setCommon({ ...common, legacyGradeSummaries: common.legacyGradeSummaries.map((summary, itemIndex) => itemIndex === index ? { ...summary, schoolYear: Number(event.target.value) } : summary) })} /></label>{item.summaryType === 'SEMESTER' && <label>학기<input type="number" min="1" max="2" value={item.semester ?? 1} onChange={(event) => setCommon({ ...common, legacyGradeSummaries: common.legacyGradeSummaries.map((summary, itemIndex) => itemIndex === index ? { ...summary, semester: Number(event.target.value) } : summary) })} /></label>}<label>석차<input type="number" min="1" value={item.rankPosition} onChange={(event) => setCommon({ ...common, legacyGradeSummaries: common.legacyGradeSummaries.map((summary, itemIndex) => itemIndex === index ? { ...summary, rankPosition: Number(event.target.value) } : summary) })} /></label><label>동석차<input type="number" min="1" value={item.tiedRankCount ?? ''} onChange={(event) => setCommon({ ...common, legacyGradeSummaries: common.legacyGradeSummaries.map((summary, itemIndex) => itemIndex === index ? { ...summary, tiedRankCount: event.target.value ? Number(event.target.value) : null } : summary) })} /></label><label>재적수<input type="number" min="1" value={item.cohortSize} onChange={(event) => setCommon({ ...common, legacyGradeSummaries: common.legacyGradeSummaries.map((summary, itemIndex) => itemIndex === index ? { ...summary, cohortSize: Number(event.target.value) } : summary) })} /></label><label>이수단위 합<input type="number" min="0.01" step="0.01" value={item.credits} onChange={(event) => setCommon({ ...common, legacyGradeSummaries: common.legacyGradeSummaries.map((summary, itemIndex) => itemIndex === index ? { ...summary, credits: Number(event.target.value) } : summary) })} /></label><button className="danger-action" type="button" onClick={() => setCommon({ ...common, legacyGradeSummaries: common.legacyGradeSummaries.filter((_, itemIndex) => itemIndex !== index) })}>삭제</button></div>)}
+      </div>}
+      <div className="student-common-section">
+        <strong>학년별 미인정 출결</strong>
+        <div className="student-attendance-grid student-attendance-grid--head"><span>학년</span><span>결석</span><span>지각</span><span>조퇴</span><span>결과</span></div>
+        {common.attendance.map((item, index) => <div className="student-attendance-grid" key={item.schoolYear}>
+          <b>{item.schoolYear}학년</b>
+          <input aria-label={`${item.schoolYear}학년 미인정 결석`} type="number" min="0" value={item.unexcusedAbsenceDays} onChange={(event) => updateAttendance(index, 'unexcusedAbsenceDays', Number(event.target.value))} />
+          <input aria-label={`${item.schoolYear}학년 미인정 지각`} type="number" min="0" value={item.unexcusedTardyCount} onChange={(event) => updateAttendance(index, 'unexcusedTardyCount', Number(event.target.value))} />
+          <input aria-label={`${item.schoolYear}학년 미인정 조퇴`} type="number" min="0" value={item.unexcusedEarlyLeaveCount} onChange={(event) => updateAttendance(index, 'unexcusedEarlyLeaveCount', Number(event.target.value))} />
+          <input aria-label={`${item.schoolYear}학년 미인정 결과`} type="number" min="0" value={item.unexcusedClassAbsenceCount} onChange={(event) => updateAttendance(index, 'unexcusedClassAbsenceCount', Number(event.target.value))} />
+        </div>)}
+      </div>
+      <div className="student-common-section">
+        <div className="course-editor-heading"><strong>학교폭력 조치사항</strong><button type="button" onClick={() => setCommon({ ...common, schoolViolenceActions: [...common.schoolViolenceActions, { schoolYear: 1, actionNumber: 1, actionDate: null, active: true, note: '' }] })}>조치 추가</button></div>
+        {common.schoolViolenceActions.length === 0 && <p className="application-notice">등록된 학교폭력 조치가 없습니다.</p>}
+        {common.schoolViolenceActions.map((action, index) => <div className="student-violence-row" key={index}>
+          <label>학년<select value={action.schoolYear ?? ''} onChange={(event) => setCommon({ ...common, schoolViolenceActions: common.schoolViolenceActions.map((item, itemIndex) => itemIndex === index ? { ...item, schoolYear: event.target.value ? Number(event.target.value) : null } : item) })}><option value="">미상</option><option value="1">1학년</option><option value="2">2학년</option><option value="3">3학년</option></select></label>
+          <label>조치<select value={action.actionNumber} onChange={(event) => setCommon({ ...common, schoolViolenceActions: common.schoolViolenceActions.map((item, itemIndex) => itemIndex === index ? { ...item, actionNumber: Number(event.target.value) } : item) })}>{[1, 2, 3, 4, 5, 6, 7, 8, 9].map((number) => <option value={number} key={number}>{number}호</option>)}</select></label>
+          <label>조치일<input type="date" value={action.actionDate ?? ''} onChange={(event) => setCommon({ ...common, schoolViolenceActions: common.schoolViolenceActions.map((item, itemIndex) => itemIndex === index ? { ...item, actionDate: event.target.value || null } : item) })} /></label>
+          <label className="inline-check"><input type="checkbox" checked={action.active} onChange={(event) => setCommon({ ...common, schoolViolenceActions: common.schoolViolenceActions.map((item, itemIndex) => itemIndex === index ? { ...item, active: event.target.checked } : item) })} />현재 반영</label>
+          <label>비고<input maxLength={500} value={action.note} onChange={(event) => setCommon({ ...common, schoolViolenceActions: common.schoolViolenceActions.map((item, itemIndex) => itemIndex === index ? { ...item, note: event.target.value } : item) })} /></label>
+          <button className="danger-action" type="button" onClick={() => setCommon({ ...common, schoolViolenceActions: common.schoolViolenceActions.filter((_, itemIndex) => itemIndex !== index) })}>삭제</button>
+        </div>)}
+      </div>
+      <button disabled={commonMutation.isPending}>{commonMutation.isPending ? '공통 데이터 저장 중…' : '공통 데이터 저장'}</button>
+    </form>
     <form className="course-editor-form" onSubmit={(event: FormEvent) => { event.preventDefault(); courseMutation.mutate(); }}>
       <div className="course-editor-heading"><strong>과목 성적</strong><select value={courseId} onChange={(event) => chooseCourse(Number(event.target.value))}><option value={0}>새 과목 추가</option>{transcript.courses.map((item) => <option value={item.id} key={item.id}>{item.schoolYear}-{item.semester} {item.courseName}</option>)}</select></div>
       <label>학년<input type="number" min="1" max="3" value={course.schoolYear} onChange={(e) => setCourse({ ...course, schoolYear: Number(e.target.value) })} /></label>
       <label>학기<input type="number" min="1" max="2" value={course.semester} onChange={(e) => setCourse({ ...course, semester: Number(e.target.value) })} /></label>
       <label>교과<select value={course.subjectCategory} onChange={(e) => setCourse({ ...course, subjectCategory: e.target.value as SubjectCategory })}>{subjects.map((value) => <option key={value}>{value}</option>)}</select></label>
       <label>과목명<input required value={course.courseName} onChange={(e) => setCourse({ ...course, courseName: e.target.value })} /></label>
-      <label>등급<input type="number" min="1" max="9" value={course.grade ?? ''} onChange={(e) => setCourse({ ...course, grade: e.target.value ? Number(e.target.value) : null })} /></label>
-      <label>성취도<select value={course.achievement ?? ''} onChange={(e) => setCourse({ ...course, achievement: (e.target.value || null) as AchievementLevel | null })}><option value="">없음</option>{['A', 'B', 'C', 'D', 'E'].map((value) => <option key={value}>{value}</option>)}</select></label>
+      <label>입력 방식<select value={courseInputMode} onChange={(event) => { const mode = event.target.value; if (mode === 'GRADE') setCourse({ ...course, grade: 1, gradeScale: 'NINE_LEVEL', achievement: null, rankPosition: null, tiedRankCount: null, legacyAchievement: null }); if (mode === 'ACHIEVEMENT') setCourse({ ...course, grade: null, achievement: 'A', rankPosition: null, tiedRankCount: null, legacyAchievement: null }); if (mode === 'RANK') setCourse({ ...course, grade: null, gradeScale: 'LEGACY', achievement: null, rankPosition: 1, tiedRankCount: 1, legacyAchievement: null, studentCount: 1 }); if (mode === 'LEGACY') setCourse({ ...course, grade: null, gradeScale: 'LEGACY', achievement: null, rankPosition: null, tiedRankCount: null, legacyAchievement: 'SU' }); }}><option value="GRADE">석차등급</option><option value="ACHIEVEMENT">성취도 A~E</option><option value="RANK">석차·동석차</option><option value="LEGACY">수/우/미/양/가</option></select></label>
+      {courseInputMode === 'GRADE' && <><label>등급제<select value={course.gradeScale} onChange={(e) => setCourse({ ...course, gradeScale: e.target.value as UpsertTranscriptCourseRequest['gradeScale'], grade: 1 })}><option value="NINE_LEVEL">9등급제</option><option value="FIVE_LEVEL">5등급제</option></select></label><label>등급<input type="number" min="1" max={course.gradeScale === 'FIVE_LEVEL' ? 5 : 9} value={course.grade ?? ''} onChange={(e) => setCourse({ ...course, grade: e.target.value ? Number(e.target.value) : null })} /></label></>}
+      {courseInputMode === 'ACHIEVEMENT' && <label>성취도<select value={course.achievement ?? 'A'} onChange={(e) => setCourse({ ...course, achievement: e.target.value as AchievementLevel })}>{['A', 'B', 'C', 'D', 'E'].map((value) => <option key={value}>{value}</option>)}</select></label>}
+      {courseInputMode === 'RANK' && <><label>석차<input type="number" min="1" value={course.rankPosition ?? ''} onChange={(e) => setCourse({ ...course, rankPosition: Number(e.target.value) })} /></label><label>동석차 인원<input type="number" min="1" value={course.tiedRankCount ?? ''} onChange={(e) => setCourse({ ...course, tiedRankCount: e.target.value ? Number(e.target.value) : null })} /></label><label>재적수<input type="number" min="1" value={course.studentCount ?? ''} onChange={(e) => setCourse({ ...course, studentCount: Number(e.target.value) })} /></label></>}
+      {courseInputMode === 'LEGACY' && <label>평어<select value={course.legacyAchievement ?? 'SU'} onChange={(e) => setCourse({ ...course, legacyAchievement: e.target.value as LegacyAchievement })}><option value="SU">수</option><option value="WOO">우</option><option value="MI">미</option><option value="YANG">양</option><option value="GA">가</option></select></label>}
       <label>이수단위<input type="number" min="0.01" step="0.01" value={course.credits} onChange={(e) => setCourse({ ...course, credits: Number(e.target.value) })} /></label>
       <label className="inline-check"><input type="checkbox" checked={course.careerSubject} onChange={(e) => setCourse({ ...course, careerSubject: e.target.checked })} />진로선택</label>
       <label className="inline-check"><input type="checkbox" checked={course.professionalCourse} onChange={(e) => setCourse({ ...course, professionalCourse: e.target.checked })} />전문교과</label>

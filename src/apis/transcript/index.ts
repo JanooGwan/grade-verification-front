@@ -1,15 +1,17 @@
 import { apiClient } from '@/apis/client';
-import type { StudentPage, StudentTranscript, TranscriptImportHistory, TranscriptImportMode, TranscriptImportResult, TranscriptPreview, TranscriptCourse, UpdateStudentRequest, UpsertTranscriptCourseRequest } from './entity';
+import type { SavedVerificationBatch, SavedVerificationDetail, SavedVerificationExportJob, SavedVerificationPage, SourceImportStartResult, StoredVerificationJob, StoredVerificationPersistenceResult, StudentPage, StudentTranscript, TranscriptImportHistory, TranscriptImportMode, TranscriptImportResult, TranscriptPreview, TranscriptCourse, UpdateStudentCommonDataRequest, UpdateStudentRequest, UpsertTranscriptCourseRequest } from './entity';
 
 export interface StudentSearchParams {
+  universityId: number;
   admissionYear: number;
   keyword: string;
   page: number;
   size: number;
 }
 
-export const getStudents = ({ admissionYear, keyword, page, size }: StudentSearchParams) => {
+export const getStudents = ({ universityId, admissionYear, keyword, page, size }: StudentSearchParams) => {
   const params = new URLSearchParams({
+    universityId: String(universityId),
     admissionYear: String(admissionYear),
     page: String(page),
     size: String(size),
@@ -18,28 +20,160 @@ export const getStudents = ({ admissionYear, keyword, page, size }: StudentSearc
   return apiClient.get<StudentPage>(`/api/transcripts/students?${params.toString()}`);
 };
 
-export const getStudentTranscript = (admissionYear: number, applicantNumber: string) =>
+export const getStudentTranscript = (universityId: number, admissionYear: number, applicantNumber: string) =>
   apiClient.get<StudentTranscript>(
-    `/api/transcripts/students/${encodeURIComponent(applicantNumber)}?admissionYear=${admissionYear}`,
+    `/api/transcripts/students/${encodeURIComponent(applicantNumber)}?universityId=${universityId}&admissionYear=${admissionYear}`,
   );
 
-export const previewTranscriptExcel = (admissionYear: number, file: File) => {
-  const form = new FormData();
-  form.append('admissionYear', String(admissionYear));
-  form.append('file', file);
-  return apiClient.postForm<TranscriptPreview>('/api/transcripts/imports/excel/preview', form);
+export const verifyStoredTranscript = (universityId: number, admissionYear: number) =>
+  apiClient.get<TranscriptPreview>(
+    `/api/transcripts/verifications?universityId=${universityId}&admissionYear=${admissionYear}`,
+  );
+
+export const persistStoredTranscriptVerification = (universityId: number, admissionYear: number) =>
+  apiClient.post<StoredVerificationPersistenceResult>(
+    `/api/transcripts/verifications/persist?universityId=${universityId}&admissionYear=${admissionYear}`,
+    {},
+  );
+
+const startStoredTranscriptVerification = (universityId: number, admissionYear: number) =>
+  apiClient.post<StoredVerificationJob>(
+    `/api/transcripts/verifications/jobs?universityId=${universityId}&admissionYear=${admissionYear}`,
+    {},
+  );
+
+const getStoredTranscriptVerificationJob = (jobId: string) =>
+  apiClient.get<StoredVerificationJob>(`/api/transcripts/verifications/jobs/${jobId}`);
+
+export const runStoredTranscriptVerification = async (universityId: number, admissionYear: number) => {
+  let job = await startStoredTranscriptVerification(universityId, admissionYear);
+  const deadline = Date.now() + 3 * 60 * 60 * 1000;
+  let consecutiveConnectionFailures = 0;
+  while (job.status === 'PROCESSING' && Date.now() < deadline) {
+    await new Promise((resolve) => window.setTimeout(resolve, 3000));
+    try {
+      job = await getStoredTranscriptVerificationJob(job.jobId);
+      consecutiveConnectionFailures = 0;
+    } catch (error) {
+      consecutiveConnectionFailures += 1;
+      if (consecutiveConnectionFailures < 5) continue;
+      throw new Error('서버 연결이 반복해서 끊겼습니다. 백엔드 실행 상태를 확인한 뒤 다시 시도해 주세요.', {
+        cause: error,
+      });
+    }
+  }
+  if (job.status === 'FAILED') {
+    throw new Error(job.message ?? '성적 검증에 실패했습니다.');
+  }
+  if (job.status !== 'COMPLETED' || !job.result) {
+    throw new Error('성적 검증 시간이 초과되었습니다. 작업 상태를 다시 확인해 주세요.');
+  }
+  const preview = await getSavedVerificationResults(job.result.sourceImportId, '', 0, 20);
+  return { job, preview };
 };
 
-export const importTranscriptExcel = (admissionYear: number, mode: TranscriptImportMode, file: File) => {
+export const getSavedVerificationBatches = (universityId: number, admissionYear: number) =>
+  apiClient.get<SavedVerificationBatch[]>(
+    `/api/transcripts/saved-verifications/batches?universityId=${universityId}&admissionYear=${admissionYear}`,
+  );
+
+export const getSavedVerificationResults = (
+  sourceImportId: number,
+  keyword: string,
+  page: number,
+  size = 50,
+) => {
+  const params = new URLSearchParams({
+    sourceImportId: String(sourceImportId),
+    page: String(page),
+    size: String(size),
+  });
+  if (keyword.trim()) params.set('keyword', keyword.trim());
+  return apiClient.get<SavedVerificationPage>(`/api/transcripts/saved-verifications?${params.toString()}`);
+};
+
+export const getSavedVerificationDetail = (verificationRunId: number) =>
+  apiClient.get<SavedVerificationDetail>(`/api/transcripts/saved-verifications/${verificationRunId}`);
+
+const startSavedVerificationExport = (sourceImportId: number) =>
+  apiClient.post<SavedVerificationExportJob>(
+    `/api/transcripts/saved-verifications/batches/${sourceImportId}/exports`,
+    {},
+  );
+
+const getSavedVerificationExport = (exportId: string) =>
+  apiClient.get<SavedVerificationExportJob>(`/api/transcripts/saved-verifications/exports/${exportId}`);
+
+export const prepareSavedVerificationExport = async (sourceImportId: number) => {
+  let job = await startSavedVerificationExport(sourceImportId);
+  const deadline = Date.now() + 3 * 60 * 60 * 1000;
+  let consecutiveConnectionFailures = 0;
+  while (job.status === 'PROCESSING' && Date.now() < deadline) {
+    await new Promise((resolve) => window.setTimeout(resolve, 2000));
+    try {
+      job = await getSavedVerificationExport(job.exportId);
+      consecutiveConnectionFailures = 0;
+    } catch (error) {
+      consecutiveConnectionFailures += 1;
+      if (consecutiveConnectionFailures < 5) continue;
+      throw new Error('서버 연결이 반복해서 끊겼습니다. 백엔드 실행 상태를 확인한 뒤 다시 시도해 주세요.', {
+        cause: error,
+      });
+    }
+  }
+  if (job.status === 'FAILED') {
+    throw new Error(job.message ?? 'Excel 파일을 생성하지 못했습니다.');
+  }
+  if (job.status !== 'READY') {
+    throw new Error('Excel 파일 생성이 장시간 완료되지 않았습니다. 잠시 후 다시 시도해 주세요.');
+  }
+  return job;
+};
+
+export const downloadPreparedSavedVerificationExport = (exportId: string, fileName: string) =>
+  apiClient.download(`/api/transcripts/saved-verifications/exports/${exportId}/file`, fileName);
+
+export const importTranscriptExcel = (
+  admissionYear: number,
+  universityId: number,
+  mode: TranscriptImportMode,
+  file: File,
+  schoolInfoFile?: File | null,
+  vocationalTrainingFile?: File | null,
+) => {
   const form = new FormData();
   form.append('admissionYear', String(admissionYear));
   form.append('mode', mode);
+  form.append('universityId', String(universityId));
   form.append('file', file);
+  if (schoolInfoFile) form.append('schoolInfoFile', schoolInfoFile);
+  if (vocationalTrainingFile) form.append('vocationalTrainingFile', vocationalTrainingFile);
   return apiClient.postForm<TranscriptImportResult>('/api/transcripts/imports/excel', form);
 };
 
-export const getTranscriptImports = () => apiClient.get<TranscriptImportHistory[]>('/api/transcripts/imports');
+export const getTranscriptImports = (universityId: number) =>
+  apiClient.get<TranscriptImportHistory[]>(`/api/transcripts/imports?universityId=${universityId}`);
+
+export const downloadTranscriptImportResultExcel = (importId: number, fileName: string) =>
+  apiClient.download(`/api/transcripts/imports/${importId}/result`, fileName);
+
+export const importSyuSourceExcel = (admissionYear: number, universityId: number, file: File) => {
+  const form = new FormData();
+  form.append('admissionYear', String(admissionYear));
+  form.append('universityId', String(universityId));
+  form.append('file', file);
+  return apiClient.postForm<SourceImportStartResult>('/api/transcripts/imports/source/syu', form);
+};
+
+export const importMjcSourceExcel = (admissionYear: number, universityId: number, file: File) => {
+  const form = new FormData();
+  form.append('admissionYear', String(admissionYear));
+  form.append('universityId', String(universityId));
+  form.append('file', file);
+  return apiClient.postForm<SourceImportStartResult>('/api/transcripts/imports/source/mjc/excel', form);
+};
 export const updateStudent = (studentId: number, request: UpdateStudentRequest) => apiClient.put<StudentTranscript>(`/api/transcripts/students/${studentId}`, request);
+export const updateStudentCommonData = (studentId: number, request: UpdateStudentCommonDataRequest) => apiClient.put<StudentTranscript>(`/api/transcripts/students/${studentId}/common-data`, request);
 export const deleteStudent = (studentId: number) => apiClient.delete(`/api/transcripts/students/${studentId}`);
 export const createTranscriptCourse = (studentId: number, request: UpsertTranscriptCourseRequest) => apiClient.post<TranscriptCourse>(`/api/transcripts/students/${studentId}/courses`, request);
 export const updateTranscriptCourse = (studentId: number, courseId: number, request: UpsertTranscriptCourseRequest) => apiClient.put<TranscriptCourse>(`/api/transcripts/students/${studentId}/courses/${courseId}`, request);

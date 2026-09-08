@@ -2,29 +2,25 @@ import { useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
+  calculateStudentApplicationScore,
   createStudentApplication,
   deleteStudentApplication,
   getVerificationHistoryDetail,
+  getVerificationResultExcel,
   verifyStudentApplication,
 } from '@/apis/admission';
 import type {
+  ApplicationScore,
+  CalculateApplicationScoreRequest,
   StudentApplication,
 } from '@/apis/admission/entity';
 import { admissionQueries, admissionQueryKeys } from '@/apis/admission/queries';
 import { ApiError } from '@/apis/client';
-import type { GradeVerification, SubjectCategory } from '@/apis/evaluation/entity';
+import type { GradeVerification } from '@/apis/evaluation/entity';
 import type { StudentTranscript } from '@/apis/transcript/entity';
 import { universityQueries } from '@/apis/university/queries';
 import ConfirmDialog from '@/components/ConfirmDialog';
-
-const subjectLabels: Record<SubjectCategory, string> = {
-  KOREAN: '국어',
-  MATH: '수학',
-  ENGLISH: '영어',
-  SOCIAL: '사회',
-  SCIENCE: '과학',
-  OTHER: '기타',
-};
+import VerificationDetail from '@/components/VerificationDetail';
 
 function errorMessage(error: unknown) {
   if (error instanceof ApiError) return error.response?.message ?? error.message;
@@ -37,6 +33,8 @@ export default function StudentApplicationPanel({ transcript }: { transcript: St
   const [trackId, setTrackId] = useState(0);
   const [unitId, setUnitId] = useState(0);
   const [verification, setVerification] = useState<GradeVerification | null>(null);
+  const [verificationRunId, setVerificationRunId] = useState<number | null>(null);
+  const [applicationScore, setApplicationScore] = useState<ApplicationScore | null>(null);
   const [applicationPendingDelete, setApplicationPendingDelete] = useState<number | null>(null);
   const universitiesQuery = useQuery(universityQueries.list());
   const tracksQuery = useQuery({
@@ -53,6 +51,8 @@ export default function StudentApplicationPanel({ transcript }: { transcript: St
     onSuccess: async () => {
       setUnitId(0);
       setVerification(null);
+      setVerificationRunId(null);
+      setApplicationScore(null);
       await queryClient.invalidateQueries({
         queryKey: admissionQueryKeys.applications(transcript.studentId),
       });
@@ -63,6 +63,8 @@ export default function StudentApplicationPanel({ transcript }: { transcript: St
       deleteStudentApplication(transcript.studentId, applicationId),
     onSuccess: async () => {
       setVerification(null);
+      setVerificationRunId(null);
+      setApplicationScore(null);
       setApplicationPendingDelete(null);
       await queryClient.invalidateQueries({
         queryKey: admissionQueryKeys.applications(transcript.studentId),
@@ -74,12 +76,36 @@ export default function StudentApplicationPanel({ transcript }: { transcript: St
       verifyStudentApplication(transcript.studentId, applicationId),
     onSuccess: async (response) => {
       setVerification(response.verification);
+      setVerificationRunId(response.verificationRunId);
       await queryClient.invalidateQueries({ queryKey: admissionQueryKeys.verifications(transcript.studentId) });
     },
   });
+  const scoreMutation = useMutation({
+    mutationFn: ({ applicationId, request }: {
+      applicationId: number;
+      request: CalculateApplicationScoreRequest;
+    }) => calculateStudentApplicationScore(transcript.studentId, applicationId, request),
+    onSuccess: (response) => setApplicationScore(response),
+  });
   const historyDetailMutation = useMutation({
     mutationFn: (runId: number) => getVerificationHistoryDetail(transcript.studentId, runId),
-    onSuccess: (response) => setVerification(response.verification),
+    onSuccess: (response) => {
+      setVerification(response.verification);
+      setVerificationRunId(response.verificationRunId);
+    },
+  });
+  const exportMutation = useMutation({
+    mutationFn: (runId: number) => getVerificationResultExcel(transcript.studentId, runId),
+    onSuccess: (file, runId) => {
+      const url = URL.createObjectURL(file);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `성적검증결과-${runId}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    },
   });
 
   const submit = (event: FormEvent) => {
@@ -91,7 +117,7 @@ export default function StudentApplicationPanel({ transcript }: { transcript: St
     setApplicationPendingDelete(applicationId);
   };
 
-  const requestError = createMutation.error ?? deleteMutation.error ?? verifyMutation.error ?? historyDetailMutation.error
+  const requestError = createMutation.error ?? deleteMutation.error ?? verifyMutation.error ?? scoreMutation.error ?? historyDetailMutation.error ?? exportMutation.error
     ?? applicationsQuery.error ?? tracksQuery.error;
 
   return (
@@ -99,8 +125,8 @@ export default function StudentApplicationPanel({ transcript }: { transcript: St
       <div className="application-heading">
         <div>
           <p className="section-step">APPLICATION & RULE MATCH</p>
-          <h3>지원 정보와 자동 규칙 연결</h3>
-          <p>지원 대학·전형·모집단위를 등록하면 게시된 규칙을 자동으로 찾아 계산합니다.</p>
+          <h3>지원 정보와 반영 기준 자동 연결</h3>
+          <p>지원 대학·전형·모집단위를 등록하면 게시된 반영 기준을 자동으로 찾아 계산합니다.</p>
         </div>
         <span>{applicationsQuery.data?.length ?? 0}건 지원</span>
       </div>
@@ -143,7 +169,7 @@ export default function StudentApplicationPanel({ transcript }: { transcript: St
       </form>
 
       {universityId > 0 && !tracksQuery.isLoading && tracksQuery.data?.length === 0 && (
-        <p className="application-notice">이 대학의 {transcript.admissionYear}학년도 전형이 없습니다. 먼저 규칙 또는 전형을 등록해 주세요.</p>
+        <p className="application-notice">이 대학의 {transcript.admissionYear}학년도 전형이 없습니다. 먼저 반영 기준 또는 전형을 등록해 주세요.</p>
       )}
       {requestError && <div className="error-banner" role="alert">{errorMessage(requestError)}</div>}
 
@@ -155,7 +181,9 @@ export default function StudentApplicationPanel({ transcript }: { transcript: St
             studentId={transcript.studentId}
             verifying={verifyMutation.isPending && verifyMutation.variables === application.id}
             deleting={deleteMutation.isPending && deleteMutation.variables === application.id}
+            scoring={scoreMutation.isPending && scoreMutation.variables?.applicationId === application.id}
             onVerify={(applicationId) => verifyMutation.mutate(applicationId)}
+            onScore={(applicationId, request) => scoreMutation.mutate({ applicationId, request })}
             onDelete={removeApplication}
           />
         ))}
@@ -168,7 +196,12 @@ export default function StudentApplicationPanel({ transcript }: { transcript: St
         <summary>성적 검증 이력 {historyQuery.data.length}건</summary>
         <div>{historyQuery.data.map((run) => <button type="button" key={run.verificationRunId} onClick={() => historyDetailMutation.mutate(run.verificationRunId)}><span>{run.universityName} · {run.recruitmentUnit}</span><b>{run.finalScore}점</b><small>v{run.ruleVersion} · {new Date(run.createdAt).toLocaleString()}</small></button>)}</div>
       </details>}
-      {verification && <VerificationDetail result={verification} />}
+      {verification && <VerificationDetail
+        result={verification}
+        exporting={exportMutation.isPending}
+        onExport={verificationRunId === null ? undefined : () => exportMutation.mutate(verificationRunId)}
+      />}
+      {applicationScore && <ApplicationScoreDetail result={applicationScore} />}
       <ConfirmDialog
         open={applicationPendingDelete !== null}
         title="지원 정보를 삭제할까요?"
@@ -185,20 +218,26 @@ export default function StudentApplicationPanel({ transcript }: { transcript: St
   );
 }
 
-function ApplicationCard({ application, studentId, verifying, deleting, onVerify, onDelete }: {
+function ApplicationCard({ application, studentId, verifying, deleting, scoring, onVerify, onScore, onDelete }: {
   application: StudentApplication;
   studentId: number;
   verifying: boolean;
   deleting: boolean;
+  scoring: boolean;
   onVerify: (applicationId: number) => void;
+  onScore: (applicationId: number, request: CalculateApplicationScoreRequest) => void;
   onDelete: (applicationId: number) => void;
 }) {
   const matchQuery = useQuery(admissionQueries.ruleMatch(studentId, application.id));
   const match = matchQuery.data;
   const status = match?.status ?? 'LOADING';
-  const statusLabel = status === 'MATCHED' ? '규칙 연결됨'
-    : status === 'NOT_FOUND' ? '규칙 없음'
+  const statusLabel = status === 'MATCHED' ? '반영 기준 연결됨'
+    : status === 'NOT_FOUND' ? '반영 기준 없음'
       : status === 'CONFLICT' ? '중복 충돌' : '확인 중';
+  const universityName = application.universityName.replaceAll(' ', '');
+  const supportsQuantitativeScore = (application.admissionYear === 2027
+    && ['한신', '한국공학', '명지전문', '삼육'].some((name) => universityName.includes(name)))
+    || (application.admissionYear === 2026 && universityName.includes('경복'));
 
   return (
     <article className="application-item">
@@ -214,6 +253,13 @@ function ApplicationCard({ application, studentId, verifying, deleting, onVerify
             {candidate.sourcePages && ` p.${candidate.sourcePages}`}
           </small>
         ))}
+        {match?.status === 'MATCHED' && supportsQuantitativeScore && (
+          <ApplicationScoreForm
+            application={application}
+            pending={scoring}
+            onSubmit={(request) => onScore(application.id, request)}
+          />
+        )}
       </div>
       <div className="application-actions">
         <button
@@ -231,44 +277,90 @@ function ApplicationCard({ application, studentId, verifying, deleting, onVerify
   );
 }
 
-function VerificationDetail({ result }: { result: GradeVerification }) {
-  const [showExcluded, setShowExcluded] = useState(true);
-  const calculations = showExcluded ? result.calculations : result.calculations.filter((course) => course.included);
+const blankScoreRequest = (): CalculateApplicationScoreRequest => ({
+  essayScore: null,
+  practicalScore: null,
+  bonusScore: null,
+});
+
+function ApplicationScoreForm({ application, pending, onSubmit }: {
+  application: StudentApplication;
+  pending: boolean;
+  onSubmit: (request: CalculateApplicationScoreRequest) => void;
+}) {
+  const [request, setRequest] = useState(blankScoreRequest);
+  const trackName = application.admissionTrackName.replaceAll(' ', '');
+  const needsEssay = trackName.includes('논술');
+  const needsPractical = trackName.includes('체육실기');
+  const needsBonus = application.universityName.replaceAll(' ', '').includes('경복');
+  const inputId = `application-score-${application.id}`;
+  const number = (value: string) => value === '' ? null : Number(value);
+
   return (
-    <section className="student-verification-result">
-      <div className="verification-result-heading">
-        <div>
-          <p className="section-step">VERIFICATION RESULT</p>
-          <h3>{result.universityName} 최종 환산 결과</h3>
-          <p>{result.admissionType} · {result.recruitmentUnit} · {result.ruleName} v{result.ruleVersion}</p>
-        </div>
-        <div className="verification-score"><small>최종 점수</small><strong>{result.finalScore}</strong><span>평균등급 {result.averageGrade}</span></div>
+    <details className="application-score-form">
+      <summary>검정고시·외국고·출결·학교폭력 포함 총점 계산</summary>
+      <p>학력·졸업 상태·출결·학교폭력은 학생의 대학 공통 데이터에서 자동으로 가져옵니다.</p>
+      <div className="application-score-fields">
+        {needsEssay && <>
+          <label htmlFor={`${inputId}-essay`}>논술고사 점수(800점)</label>
+          <input id={`${inputId}-essay`} type="number" min="0" max="800" value={request.essayScore ?? ''} onChange={(event) => setRequest({ ...request, essayScore: number(event.target.value) })} />
+        </>}
+
+        {needsPractical && <>
+          <label htmlFor={`${inputId}-practical`}>체육실기 환산점수(550점)</label>
+          <input id={`${inputId}-practical`} type="number" min="0" max="550" step="0.01" value={request.practicalScore ?? ''} onChange={(event) => setRequest({ ...request, practicalScore: number(event.target.value) })} />
+        </>}
+
+        {needsBonus && <>
+          <label htmlFor={`${inputId}-bonus`}>KBU입시드림포인트 가산점</label>
+          <input id={`${inputId}-bonus`} type="number" min="0" max="10" step="0.01" value={request.bonusScore ?? ''} onChange={(event) => setRequest({ ...request, bonusScore: number(event.target.value) })} />
+        </>}
+
       </div>
-      <div className="verification-facts">
-        <span><b>{result.includedCourseCount}</b>개 반영</span>
-        <span><b>{result.excludedCourseCount}</b>개 제외</span>
-        <span>근거: {result.sourceDocument || '미등록'} {result.sourcePages && `p.${result.sourcePages}`}</span>
+      <button type="button" disabled={pending} onClick={() => onSubmit(request)}>
+        {pending ? '총점 계산 중…' : '전형 총점 계산'}
+      </button>
+      {trackName.includes('참인재') && <p>면접 400점은 정성평가이므로 교과·출결 정량점수만 계산하고 최종 총점은 보류합니다.</p>}
+    </details>
+  );
+}
+
+function ApplicationScoreDetail({ result }: { result: ApplicationScore }) {
+  const statusLabel = result.status === 'COMPLETE' ? '정량평가 계산 완료'
+    : result.status === 'QUALITATIVE_PENDING' ? '정성평가 반영 보류'
+      : '지원자격 미달';
+  return (
+    <section className={`application-score-result application-score-result--${result.status.toLowerCase()}`}>
+      <header>
+        <div><small>APPLICATION SCORE</small><h3>{result.universityName} 전형 총점</h3><p>{result.admissionTrackName} · {result.recruitmentUnitName}</p></div>
+        <div><span>{statusLabel}</span><strong>{result.finalScore ?? result.scoreAfterDeduction}</strong><small>/ {result.maximumTotalScore}점</small></div>
+      </header>
+      <div className="application-score-components">
+        <span><small>학생부 기초점수</small><b>{result.academicBaseScore}</b></span>
+        <span><small>교과 반영점수</small><b>{result.academicScore}</b></span>
+        {result.attendanceScore !== null && <span><small>출결점수{result.equivalentAbsenceDays !== null && ` · 환산결석 ${result.equivalentAbsenceDays}일`}</small><b>{result.attendanceScore}</b></span>}
+        {result.additionalScore !== null && <span><small>논술·실기점수</small><b>{result.additionalScore}</b></span>}
+        <span><small>학교폭력 감점</small><b>-{result.schoolViolenceDeduction}</b></span>
+        <span><small>정량점수</small><b>{result.scoreAfterDeduction} / {result.maximumQuantitativeScore}</b></span>
       </div>
-      {result.warnings.map((warning) => <p className="verification-warning" key={warning}>⚠ {warning}</p>)}
-      <div className="calculation-heading">
-        <strong>과목별 계산 근거</strong>
-        <label><input type="checkbox" checked={showExcluded} onChange={(event) => setShowExcluded(event.target.checked)} />제외 과목 함께 보기</label>
-      </div>
-      <div className="student-calculation-table">
-        <div className="student-calculation-row student-calculation-row--head">
-          <span>학년/학기</span><span>교과·과목</span><span>입력</span><span>환산점수</span><span>학년×교과×단위</span><span>결과</span>
-        </div>
-        {calculations.map((course, index) => (
-          <div className={`student-calculation-row ${course.included ? 'is-included' : 'is-excluded'}`} key={`${course.courseName}-${course.schoolYear}-${course.semester}-${index}`}>
-            <span>{course.schoolYear}-{course.semester}</span>
-            <span><b>{subjectLabels[course.subjectCategory]}</b>{course.courseName}{course.appliedSubjectCategory && course.subjectCategory !== course.appliedSubjectCategory && <small>→ {subjectLabels[course.appliedSubjectCategory]} 반영</small>}</span>
-            <span>{course.grade ? `${course.grade}등급` : course.achievement ?? '-'}</span>
-            <span>{course.convertedScore ?? '-'}</span>
-            <span>{course.gradeWeight} × {course.subjectWeight} × {course.credits}<small>적용 {course.appliedWeight}</small></span>
-            <span>{course.included ? <b>반영 {course.weightedScore}</b> : <em>{course.exclusionReason}</em>}</span>
-          </div>
-        ))}
-      </div>
+      {result.pendingComponents.map((component) => <p className="verification-warning" key={component}>보류: {component}</p>)}
+      {result.ineligibilityReasons.map((reason) => <p className="error-banner" key={reason}>{reason}</p>)}
+      {result.warnings.map((warning) => <p className="verification-warning" key={warning}>참고: {warning}</p>)}
+      {result.calculationSteps.length > 0 && (
+        <details className="application-score-trace">
+          <summary>전형 점수 중간 계산값</summary>
+          {result.calculationSteps.map((step) => (
+            <div className="verification-facts" key={step.key}>
+              <span><b>{step.description}</b><small>{step.formula}</small></span>
+              {Object.entries(step.operands).map(([name, value]) => (
+                <span key={`${step.key}-${name}`}><small>{name}</small><b>{value}</b></span>
+              ))}
+              <span><small>계산 결과</small><b>{step.result}</b></span>
+            </div>
+          ))}
+        </details>
+      )}
+      {result.gradeVerification && <VerificationDetail result={result.gradeVerification} />}
     </section>
   );
 }

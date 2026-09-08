@@ -1,13 +1,62 @@
 import type { AchievementLevel, CourseGrade, SubjectCategory } from '@/apis/evaluation/entity';
+import type { GradeVerification } from '@/apis/evaluation/entity';
+
+export type EducationBackground = 'DOMESTIC_HIGH_SCHOOL' | 'GED' | 'FOREIGN_HIGH_SCHOOL';
+export type GraduationStatus = 'EXPECTED_GRADUATE' | 'GRADUATE';
+export type HighSchoolType = 'GENERAL' | 'SPECIALIZED' | 'COMPREHENSIVE_VOCATIONAL' | 'LIFELONG_EDUCATION_FACILITY' | 'TWO_YEAR';
+export type GradeScale = 'NINE_LEVEL' | 'FIVE_LEVEL' | 'LEGACY';
+export type LegacyAchievement = 'SU' | 'WOO' | 'MI' | 'YANG' | 'GA';
+export type GedSubjectType = 'KOREAN' | 'ENGLISH' | 'MATH' | 'KOREAN_HISTORY' | 'SOCIAL' | 'SCIENCE' | 'ELECTIVE';
+export type LegacySummaryType = 'SEMESTER' | 'YEAR';
+
+export interface GedSubjectScore {
+  id?: number;
+  subjectType: GedSubjectType;
+  subjectName: string;
+  score: number;
+}
+
+export interface LegacyGradeSummary {
+  id?: number;
+  summaryType: LegacySummaryType;
+  schoolYear: number;
+  semester: number | null;
+  rankPosition: number;
+  tiedRankCount: number | null;
+  cohortSize: number;
+  credits: number;
+}
+
+export interface StudentAttendance {
+  schoolYear: number;
+  unexcusedAbsenceDays: number;
+  unexcusedTardyCount: number;
+  unexcusedEarlyLeaveCount: number;
+  unexcusedClassAbsenceCount: number;
+}
+
+export interface StudentSchoolViolenceAction {
+  id?: number;
+  schoolYear: number | null;
+  actionNumber: number;
+  actionDate: string | null;
+  active: boolean;
+  note: string | null;
+}
 
 export interface StudentSummary {
   studentId: number;
+  universityId: number;
+  universityName: string;
   admissionYear: number;
   applicantNumber: string;
   name: string;
   highSchoolCode: string | null;
   highSchoolName: string | null;
   graduationYear: number | null;
+  educationBackground: EducationBackground;
+  highSchoolType: HighSchoolType;
+  graduationStatus: GraduationStatus;
   courseCount: number;
   averageGrade: number | null;
 }
@@ -29,11 +78,15 @@ export interface TranscriptCourse {
   subjectCategory: SubjectCategory;
   courseName: string;
   grade: number | null;
+  gradeScale: GradeScale;
   achievement: AchievementLevel | null;
   rawScore: number | null;
   meanScore: number | null;
   standardDeviation: number | null;
   studentCount: number | null;
+  rankPosition: number | null;
+  tiedRankCount: number | null;
+  legacyAchievement: LegacyAchievement | null;
   credits: number;
   careerSubject: boolean;
   professionalCourse: boolean;
@@ -41,12 +94,22 @@ export interface TranscriptCourse {
 
 export interface StudentTranscript {
   studentId: number;
+  universityId: number;
+  universityName: string;
   admissionYear: number;
   applicantNumber: string;
   name: string;
   highSchoolCode: string | null;
   highSchoolName: string | null;
   graduationYear: number | null;
+  educationBackground: EducationBackground;
+  highSchoolType: HighSchoolType;
+  graduationStatus: GraduationStatus;
+  gedAverageScore: number | null;
+  gedSubjectScores: GedSubjectScore[];
+  legacyGradeSummaries: LegacyGradeSummary[];
+  attendance: StudentAttendance[];
+  schoolViolenceActions: StudentSchoolViolenceAction[];
   courses: TranscriptCourse[];
   dataQualityWarnings: string[];
 }
@@ -56,9 +119,12 @@ export type TranscriptImportMode = 'VALID_ROWS_ONLY' | 'ALL_OR_NOTHING';
 export interface TranscriptPreview {
   originalFileName: string;
   fileSha256: string;
+  sourceFormat: 'STANDARD_TRANSCRIPT_V1' | 'HANSHIN_MULTI_SHEET_V1' | 'SYU_SOURCE_WORKBOOK_V1';
+  applicationRows: number;
   totalRows: number;
   validRows: number;
   invalidRows: number;
+  skippedRows: number;
   sampleRows: Array<{
     rowNumber: number;
     applicantNumber: string;
@@ -71,33 +137,145 @@ export interface TranscriptPreview {
     achievement: AchievementLevel | null;
     credits: number;
   }>;
-  errors: Array<{ rowNumber: number; message: string }>;
+  verification: {
+    totalApplications: number;
+    successfulApplications: number;
+    failedApplications: number;
+    sampleResults: Array<{
+      applicationRowNumber: number;
+      applicantNumber: string;
+      studentName: string;
+      admissionTrackName: string;
+      recruitmentUnitName: string;
+      finalScore: number;
+      averageGrade: number | null;
+      includedCourseCount: number;
+    }>;
+  } | null;
+  errors: Array<{ rowNumber: number; reason: string }>;
+  warnings: string[];
+}
+
+export interface StoredVerificationPersistenceResult {
+  sourceImportId: number;
+  totalApplications: number;
+  savedResults: number;
+  failedResults: number;
+  replacedResults: number;
+  savedAt: string;
+}
+
+export interface StoredVerificationJob {
+  jobId: string;
+  universityId: number;
+  admissionYear: number;
+  status: 'PROCESSING' | 'COMPLETED' | 'FAILED';
+  message: string | null;
+  startedAt: string;
+  completedAt: string | null;
+  result: StoredVerificationPersistenceResult | null;
+}
+
+export interface SavedVerificationBatch {
+  sourceImportId: number;
+  universityId: number;
+  universityName: string;
+  admissionYear: number;
+  originalFileName: string;
+  sourceFormat: string;
+  resultCount: number;
+  savedAt: string;
+}
+
+export interface SavedVerificationExportJob {
+  exportId: string;
+  sourceImportId: number;
+  status: 'PROCESSING' | 'READY' | 'FAILED';
+  message: string | null;
+}
+
+export interface SavedVerificationResultRow {
+  verificationRunId: number;
+  studentId: number;
+  applicantNumber: string;
+  studentName: string;
+  admissionTrackName: string;
+  recruitmentUnitName: string;
+  ruleName: string;
+  ruleVersion: number;
+  finalScore: number;
+  averageGrade: number | null;
+  includedCourseCount: number;
+  excludedCourseCount: number;
+  savedAt: string;
+}
+
+export interface SavedVerificationPage {
+  content: SavedVerificationResultRow[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+}
+
+export interface SavedVerificationDetail {
+  verificationRunId: number;
+  sourceImportId: number;
+  studentId: number;
+  applicantNumber: string;
+  studentName: string;
+  savedAt: string;
+  verification: GradeVerification;
 }
 
 export interface TranscriptImportResult {
   importId: number;
   status: 'COMPLETED' | 'COMPLETED_WITH_ERRORS';
+  sourceFormat: 'STANDARD_TRANSCRIPT_V1' | 'HANSHIN_MULTI_SHEET_V1';
   totalRows: number;
   importedRows: number;
   failedRows: number;
+  skippedRows: number;
   createdStudents: number;
   updatedStudents: number;
   createdCourses: number;
   updatedCourses: number;
-  errors: Array<{ rowNumber: number; message: string }>;
+  deletedCourses: number;
+  applicationRows: number;
+  createdApplications: number;
+  deletedApplications: number;
+  createdAdmissionTracks: number;
+  createdRecruitmentUnits: number;
+  errors: Array<{ rowNumber: number; reason: string }>;
+  warnings: string[];
 }
 
 export interface TranscriptImportHistory {
   importId: number;
+  universityId: number;
+  universityName: string;
   admissionYear: number;
+  sourceAdmissionYear: number | null;
   originalFileName: string;
   importMode: TranscriptImportMode;
   fileSha256: string | null;
   totalRows: number;
   importedRows: number;
   failedRows: number;
-  status: 'COMPLETED' | 'COMPLETED_WITH_ERRORS';
+  status: 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'COMPLETED_WITH_ERRORS' | 'FAILED';
+  sourceFormat: 'STANDARD_TRANSCRIPT_V1' | 'HANSHIN_MULTI_SHEET_V1' | 'SYU_SOURCE_WORKBOOK_V1';
+  errorMessage: string | null;
+  hasSavedVerificationResults: boolean;
   createdAt: string;
+}
+
+export interface SourceImportStartResult {
+  importId: number;
+  status: 'QUEUED';
+  sourceFormat: 'SYU_SOURCE_WORKBOOK_V1';
+  message: string;
 }
 
 export interface UpdateStudentRequest {
@@ -105,6 +283,17 @@ export interface UpdateStudentRequest {
   highSchoolCode: string;
   highSchoolName: string;
   graduationYear: number | null;
+}
+
+export interface UpdateStudentCommonDataRequest {
+  educationBackground: EducationBackground;
+  highSchoolType: HighSchoolType;
+  graduationStatus: GraduationStatus;
+  gedAverageScore: number | null;
+  gedSubjectScores: Array<Omit<GedSubjectScore, 'id'>>;
+  legacyGradeSummaries: Array<Omit<LegacyGradeSummary, 'id'>>;
+  attendance: StudentAttendance[];
+  schoolViolenceActions: Array<Omit<StudentSchoolViolenceAction, 'id' | 'note'> & { note: string }>;
 }
 
 export type UpsertTranscriptCourseRequest = Omit<TranscriptCourse, 'id'>;
@@ -115,11 +304,15 @@ export const toCourseGrade = (course: TranscriptCourse): CourseGrade => ({
   subjectCategory: course.subjectCategory,
   courseName: course.courseName,
   grade: course.grade,
+  gradeScale: course.gradeScale,
   achievement: course.achievement,
   rawScore: course.rawScore,
   meanScore: course.meanScore,
   standardDeviation: course.standardDeviation,
   studentCount: course.studentCount,
+  rankPosition: course.rankPosition,
+  tiedRankCount: course.tiedRankCount,
+  legacyAchievement: course.legacyAchievement,
   careerSubject: course.careerSubject,
   professionalCourse: course.professionalCourse,
   credits: course.credits,
