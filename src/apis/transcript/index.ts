@@ -106,16 +106,26 @@ const getSavedVerificationExport = (exportId: string) =>
 
 export const prepareSavedVerificationExport = async (sourceImportId: number) => {
   let job = await startSavedVerificationExport(sourceImportId);
-  const deadline = Date.now() + 20 * 60 * 1000;
+  const deadline = Date.now() + 3 * 60 * 60 * 1000;
+  let consecutiveConnectionFailures = 0;
   while (job.status === 'PROCESSING' && Date.now() < deadline) {
     await new Promise((resolve) => window.setTimeout(resolve, 2000));
-    job = await getSavedVerificationExport(job.exportId);
+    try {
+      job = await getSavedVerificationExport(job.exportId);
+      consecutiveConnectionFailures = 0;
+    } catch (error) {
+      consecutiveConnectionFailures += 1;
+      if (consecutiveConnectionFailures < 5) continue;
+      throw new Error('서버 연결이 반복해서 끊겼습니다. 백엔드 실행 상태를 확인한 뒤 다시 시도해 주세요.', {
+        cause: error,
+      });
+    }
   }
   if (job.status === 'FAILED') {
     throw new Error(job.message ?? 'Excel 파일을 생성하지 못했습니다.');
   }
   if (job.status !== 'READY') {
-    throw new Error('Excel 파일 생성 시간이 초과되었습니다.');
+    throw new Error('Excel 파일 생성이 장시간 완료되지 않았습니다. 잠시 후 다시 시도해 주세요.');
   }
   return job;
 };
