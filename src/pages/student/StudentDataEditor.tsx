@@ -31,7 +31,7 @@ function message(error: unknown) { return error instanceof ApiError ? error.resp
 
 export default function StudentDataEditor({ transcript, onDeleted }: { transcript: StudentTranscript; onDeleted: () => void }) {
   const queryClient = useQueryClient();
-  const [profile, setProfile] = useState({ name: transcript.name, highSchoolCode: transcript.highSchoolCode ?? '', highSchoolName: transcript.highSchoolName ?? '', graduationYear: transcript.graduationYear });
+  const [profile, setProfile] = useState({ name: transcript.name, highSchoolCode: transcript.highSchoolCode ?? '', highSchoolName: transcript.highSchoolName ?? '', graduationYear: transcript.graduationYear, graduationDate: transcript.graduationDate ?? null });
   const [common, setCommon] = useState<UpdateStudentCommonDataRequest>(() => commonData(transcript));
   const [courseId, setCourseId] = useState(0);
   const [course, setCourse] = useState<UpsertTranscriptCourseRequest>(blankCourse());
@@ -62,7 +62,8 @@ export default function StudentDataEditor({ transcript, onDeleted }: { transcrip
       <label>이름<input value={profile.name} onChange={(event) => setProfile({ ...profile, name: event.target.value })} /></label>
       <label>고교코드<input value={profile.highSchoolCode} onChange={(event) => setProfile({ ...profile, highSchoolCode: event.target.value })} /></label>
       <label>고교명<input value={profile.highSchoolName} onChange={(event) => setProfile({ ...profile, highSchoolName: event.target.value })} /></label>
-      <label>졸업연도<input type="number" value={profile.graduationYear ?? ''} onChange={(event) => setProfile({ ...profile, graduationYear: event.target.value ? Number(event.target.value) : null })} /></label>
+      <label>졸업연도<input type="number" value={profile.graduationYear ?? ''} onChange={(event) => setProfile({ ...profile, graduationYear: event.target.value ? Number(event.target.value) : null, graduationDate: null })} /></label>
+      <label>졸업일<input type="date" min="1900-01-01" max="2100-12-31" value={profile.graduationDate ?? ''} onChange={(event) => setProfile({ ...profile, graduationDate: event.target.value || null, graduationYear: event.target.value ? Number(event.target.value.slice(0, 4)) : null })} /></label>
       <button>기본정보 저장</button><button className="danger-action" type="button" onClick={() => setPendingDelete('student')}>학생 삭제</button>
     </form>
     <form className="student-common-data-form" onSubmit={(event) => { event.preventDefault(); commonMutation.mutate(); }}>

@@ -102,6 +102,7 @@ export interface StudentTranscript {
   highSchoolCode: string | null;
   highSchoolName: string | null;
   graduationYear: number | null;
+  graduationDate?: string | null;
   educationBackground: EducationBackground;
   highSchoolType: HighSchoolType;
   graduationStatus: GraduationStatus;
@@ -283,6 +284,7 @@ export interface UpdateStudentRequest {
   highSchoolCode: string;
   highSchoolName: string;
   graduationYear: number | null;
+  graduationDate?: string | null;
 }
 
 export interface UpdateStudentCommonDataRequest {
