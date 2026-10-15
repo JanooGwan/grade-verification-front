@@ -133,6 +133,7 @@ export interface CourseGrade {
   subjectCategory: SubjectCategory;
   courseName: string;
   grade: number | null;
+  sourceGradeText?: string | null;
   gradeScale: GradeScale;
   achievement: AchievementLevel | null;
   rawScore: number | null;

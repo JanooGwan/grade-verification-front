@@ -236,7 +236,7 @@ function ApplicationCard({ application, studentId, verifying, deleting, scoring,
       : status === 'CONFLICT' ? '중복 충돌' : '확인 중';
   const universityName = application.universityName.replaceAll(' ', '');
   const supportsQuantitativeScore = (application.admissionYear === 2027
-    && ['한신', '한국공학', '명지전문', '삼육'].some((name) => universityName.includes(name)))
+    && ['한신', '한국공학', '명지전문', '삼육', '경복'].some((name) => universityName.includes(name)))
     || (application.admissionYear === 2026 && universityName.includes('경복'));
 
   return (

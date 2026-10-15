@@ -62,7 +62,7 @@ export default function VerificationDetail({ result, exporting = false, onExport
           <div className={`student-calculation-row ${course.included ? 'is-included' : 'is-excluded'}`} key={`${course.courseName}-${course.schoolYear}-${course.semester}-${index}`}>
             <span>{course.schoolYear}-{course.semester}</span>
             <span><b>{subjectLabels[course.subjectCategory]}</b>{course.courseName}{course.appliedSubjectCategory && course.subjectCategory !== course.appliedSubjectCategory && <small>→ {subjectLabels[course.appliedSubjectCategory]} 반영</small>}</span>
-            <span>{course.grade ? `${course.grade}등급` : course.achievement ?? '-'}</span>
+            <span>{course.grade ? `${course.grade}등급` : course.sourceGradeText ?? course.achievement ?? '-'}</span>
             <span>{course.convertedScore ?? '-'}</span>
             <span>{course.gradeWeight} × {course.subjectWeight} × {course.appliedCredits}<small>{course.appliedCredits !== course.credits && `원 이수단위 ${course.credits} · `}적용 {course.appliedWeight}</small></span>
             <span>{course.included ? <b>반영 {course.weightedScore}</b> : <em>{course.exclusionReason}</em>}</span>
