@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { ApiError } from '@/apis/client';
-import { downloadPreparedSavedVerificationExport, downloadTranscriptImportResultExcel, importMjcSourceExcel, importSyuSourceExcel, importTranscriptExcel, prepareSavedVerificationExport, runStoredTranscriptVerification } from '@/apis/transcript';
+import { downloadPreparedSavedVerificationExport, downloadTranscriptImportResultExcel, importMjcSourceExcel, importMjcSourceZip, importSyuSourceExcel, importTranscriptExcel, prepareSavedVerificationExport, runStoredTranscriptVerification } from '@/apis/transcript';
 import type { TranscriptImportHistory, TranscriptImportMode } from '@/apis/transcript/entity';
 import { transcriptQueries, transcriptQueryKeys } from '@/apis/transcript/queries';
 import { universityQueries } from '@/apis/university/queries';
@@ -36,12 +36,14 @@ function ExcelFilePicker({
   label,
   file,
   hint,
+  accept = '.xlsx,.xls',
   onChange,
 }: {
   id: string;
   label: string;
   file: File | null;
   hint?: string;
+  accept?: string;
   onChange: (file: File | null) => void;
 }) {
   const labelId = `${id}-label`;
@@ -54,12 +56,12 @@ function ExcelFilePicker({
           id={id}
           className="transcript-file-input"
           type="file"
-          accept=".xlsx,.xls"
+          accept={accept}
           aria-labelledby={labelId}
           onChange={(event) => onChange(event.target.files?.[0] ?? null)}
         />
         <label className="transcript-file-button" htmlFor={id}>
-          {file ? '파일 변경' : 'Excel 선택'}
+          {file ? '파일 변경' : accept.includes('.zip') ? 'ZIP / Excel 선택' : 'Excel 선택'}
         </label>
         <span className="transcript-file-name" title={file?.name}>
           {file?.name ?? '선택된 파일 없음'}
@@ -164,7 +166,9 @@ export default function TranscriptImportPanel({
   });
   const sourceImporter = useMutation({
     mutationFn: () => isMjcSource
-      ? importMjcSourceExcel(admissionYear, universityId, file as File)
+      ? file?.name.toLowerCase().endsWith('.zip')
+        ? importMjcSourceZip(admissionYear, universityId, file)
+        : importMjcSourceExcel(admissionYear, universityId, file as File)
       : importSyuSourceExcel(admissionYear, universityId, file as File),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: transcriptQueryKeys.all });
@@ -243,6 +247,8 @@ export default function TranscriptImportPanel({
             id="transcript-file"
             label="성적 파일"
             file={file}
+            accept={isMjcSource ? '.zip,.xlsx' : '.xlsx,.xls'}
+            hint={isMjcSource ? '현재 원자료는 execution.csv·file-index.csv와 parts 폴더를 함께 일반 ZIP으로 압축해 선택하세요. 기존 통합 Excel도 사용할 수 있습니다. 최대 200MB.' : undefined}
             onChange={(selectedFile) => {
               setFile(selectedFile);
               verification.reset();
@@ -251,7 +257,7 @@ export default function TranscriptImportPanel({
               sourceImporter.reset();
             }}
           />
-          <button disabled={!file || !universityId || importer.isPending || sourceImporter.isPending}>
+          <button disabled={!file || !universityId || hasActiveImport || importer.isPending || sourceImporter.isPending}>
             {sourceImporter.isPending
               ? '업로드 중…'
               : importer.isPending
@@ -316,6 +322,13 @@ export default function TranscriptImportPanel({
         <p className="warning">
           삼육대 대용량 원천 파일은 미리보기 없이 백그라운드에서 처리됩니다. 파일의 입학연도와 달라도 되며,
           선택한 검증 기준연도의 모집요강을 적용합니다. 파일 내부에 여러 입학연도가 섞여 있으면 저장되지 않습니다.
+        </p>
+      )}
+
+      {isMjcSource && (
+        <p className="warning">
+          암호화 ZIP은 먼저 해제한 뒤 일반 ZIP으로 다시 압축해 주세요. 모든 part를 한 번에 올리면
+          선택한 대학·학년도의 저장본을 교체합니다. 저장 완료 후 ‘성적 검증’을 누르면 됩니다.
         </p>
       )}
 

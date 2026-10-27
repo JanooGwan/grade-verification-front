@@ -172,6 +172,14 @@ export const importMjcSourceExcel = (admissionYear: number, universityId: number
   form.append('file', file);
   return apiClient.postForm<SourceImportStartResult>('/api/transcripts/imports/source/mjc/excel', form);
 };
+
+export const importMjcSourceZip = (admissionYear: number, universityId: number, file: File) => {
+  const form = new FormData();
+  form.append('admissionYear', String(admissionYear));
+  form.append('universityId', String(universityId));
+  form.append('file', file);
+  return apiClient.postForm<SourceImportStartResult>('/api/transcripts/imports/source/mjc/zip', form);
+};
 export const updateStudent = (studentId: number, request: UpdateStudentRequest) => apiClient.put<StudentTranscript>(`/api/transcripts/students/${studentId}`, request);
 export const updateStudentCommonData = (studentId: number, request: UpdateStudentCommonDataRequest) => apiClient.put<StudentTranscript>(`/api/transcripts/students/${studentId}/common-data`, request);
 export const deleteStudent = (studentId: number) => apiClient.delete(`/api/transcripts/students/${studentId}`);
