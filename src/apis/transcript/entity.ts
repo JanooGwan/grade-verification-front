@@ -175,6 +175,12 @@ export interface StoredVerificationJob {
   startedAt: string;
   completedAt: string | null;
   result: StoredVerificationPersistenceResult | null;
+  progress?: {
+    stage: string;
+    totalApplications: number;
+    savedResults: number;
+    failedResults: number;
+  } | null;
 }
 
 export interface SavedVerificationBatch {

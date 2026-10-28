@@ -770,6 +770,10 @@ h2 {
 .stored-verification-control button { min-height: 40px; padding: 0 16px; border: 0; border-radius: 9px; color: white; background: #173f2a; font-size: .8rem; font-weight: 800; }
 .stored-verification-control button:disabled { opacity: .55; cursor: not-allowed; }
 .import-preview, .import-history { margin: 0 22px 20px; }
+.stored-verification-progress { display: grid; gap: 8px; margin: 12px 22px 20px; padding: 16px; border: 1px solid #c9dbce; border-radius: 10px; background: #f4faf5; color: #285f3f; }
+.stored-verification-progress progress { width: 100%; accent-color: #285f3f; }
+.stored-verification-progress span { font-size: .85rem; }
+.stored-verification-progress small { color: #66736b; }
 .import-preview { padding-top: 20px; border-top: 1px solid #e2e9e4; }
 .import-preview-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
 .import-preview-heading > div:first-child { display: flex; align-items: baseline; gap: 10px; }

@@ -2,10 +2,12 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { ApiError } from '@/apis/client';
-import { downloadPreparedSavedVerificationExport, downloadTranscriptImportResultExcel, importMjcSourceExcel, importMjcSourceZip, importSyuSourceExcel, importTranscriptExcel, prepareSavedVerificationExport, runStoredTranscriptVerification } from '@/apis/transcript';
+import { downloadPreparedSavedVerificationExport, downloadTranscriptImportResultExcel, importMjcSourceExcel, importMjcSourceZip, importSyuSourceExcel, importTranscriptExcel, prepareSavedVerificationExport } from '@/apis/transcript';
 import type { TranscriptImportHistory, TranscriptImportMode } from '@/apis/transcript/entity';
 import { transcriptQueries, transcriptQueryKeys } from '@/apis/transcript/queries';
 import { universityQueries } from '@/apis/university/queries';
+import { useStoredVerification } from './hooks/useStoredVerification';
+import StoredVerificationProgress from './StoredVerificationProgress';
 
 const SELECTED_UNIVERSITY_STORAGE_KEY = 'student-transcript-selected-university-id';
 
@@ -109,15 +111,7 @@ export default function TranscriptImportPanel({
   );
   const isMjcSource = selectedUniversity?.code === 'MJC';
   const isSourceImport = isSyuSource || isMjcSource;
-  const verification = useMutation({
-    mutationFn: () => runStoredTranscriptVerification(universityId, admissionYear),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: transcriptQueryKeys.all }),
-        queryClient.invalidateQueries({ queryKey: ['operations', 'dashboard'] }),
-      ]);
-    },
-  });
+  const { verification, job: verificationJob } = useStoredVerification(universityId, admissionYear);
   const latestCompletedImport = history.data?.find(
     (item) => item.admissionYear === admissionYear
       && (item.status === 'COMPLETED' || item.status === 'COMPLETED_WITH_ERRORS'),
@@ -354,12 +348,7 @@ export default function TranscriptImportPanel({
         </button>
       </div>
 
-      {verification.isPending && (
-        <div className="import-success">
-          <strong>성적검증을 백그라운드에서 진행하고 있습니다.</strong>
-          <p>화면에서는 3초 간격으로 완료 여부만 확인하며, 긴 HTTP 요청을 유지하지 않습니다.</p>
-        </div>
-      )}
+      {verification.isPending && <StoredVerificationProgress job={verificationJob} />}
 
       {verification.data && (
         <div className="import-preview">

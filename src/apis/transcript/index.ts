@@ -45,8 +45,13 @@ const startStoredTranscriptVerification = (universityId: number, admissionYear: 
 const getStoredTranscriptVerificationJob = (jobId: string) =>
   apiClient.get<StoredVerificationJob>(`/api/transcripts/verifications/jobs/${jobId}`);
 
-export const runStoredTranscriptVerification = async (universityId: number, admissionYear: number) => {
+export const runStoredTranscriptVerification = async (
+  universityId: number,
+  admissionYear: number,
+  onProgress?: (job: StoredVerificationJob) => void,
+) => {
   let job = await startStoredTranscriptVerification(universityId, admissionYear);
+  onProgress?.(job);
   const deadline = Date.now() + 3 * 60 * 60 * 1000;
   let consecutiveConnectionFailures = 0;
   while (job.status === 'PROCESSING' && Date.now() < deadline) {
@@ -61,6 +66,7 @@ export const runStoredTranscriptVerification = async (universityId: number, admi
         cause: error,
       });
     }
+    onProgress?.(job);
   }
   if (job.status === 'FAILED') {
     throw new Error(job.message ?? '성적 검증에 실패했습니다.');
