@@ -111,7 +111,7 @@ export default function TranscriptImportPanel({
   );
   const isMjcSource = selectedUniversity?.code === 'MJC';
   const isSourceImport = isSyuSource || isMjcSource;
-  const { verification, job: verificationJob } = useStoredVerification(universityId, admissionYear);
+  const { verification, job: verificationJob, isRunning: verificationRunning, statusUnavailable: verificationStatusUnavailable, statusError: verificationStatusError } = useStoredVerification(universityId, admissionYear);
   const latestCompletedImport = history.data?.find(
     (item) => item.admissionYear === admissionYear
       && (item.status === 'COMPLETED' || item.status === 'COMPLETED_WITH_ERRORS'),
@@ -343,14 +343,15 @@ export default function TranscriptImportPanel({
         <button
           className="primary-action"
           type="button"
-          disabled={!universityId || hasActiveImport || verification.isPending || importer.isPending || sourceImporter.isPending}
+          disabled={!universityId || hasActiveImport || verificationRunning || verificationStatusUnavailable || importer.isPending || sourceImporter.isPending}
           onClick={() => verification.mutate()}
         >
-          {hasActiveImport ? '저장 처리 중…' : verification.isPending ? '검증 중…' : '성적 검증'}
+          {hasActiveImport ? '저장 처리 중…' : verificationRunning ? '검증 중…' : verificationStatusError ? '작업 상태 확인 실패' : verificationStatusUnavailable ? '작업 상태 확인 중…' : '성적 검증'}
         </button>
       </div>
 
-      {verification.isPending && <StoredVerificationProgress job={verificationJob} />}
+      {verificationStatusError && <div className="error-banner" role="alert">진행 중인 작업을 확인할 수 없습니다. 서버 연결을 확인해 주세요.</div>}
+      {verificationRunning && <StoredVerificationProgress job={verificationJob} />}
 
       {verification.data && (
         <div className="import-preview">

@@ -20,6 +20,23 @@ export interface OperationsDashboard {
 
 export type TranscriptImportStatus = 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'COMPLETED_WITH_ERRORS' | 'FAILED';
 
+export interface LightDataStatus {
+  universityId: number; universityCode: string; universityName: string; active: boolean;
+  admissionYear: number | null; studentDataPresent: boolean;
+  latestImportStatus: TranscriptImportStatus | null; latestImportAt: string | null;
+  verificationDataPresent: boolean; latestVerificationAt: string | null;
+}
+
+export interface ActiveJobs {
+  verifications: import('@/apis/transcript/entity').StoredVerificationJob[];
+  exports: Array<{ exportId: string; sourceImportId: number; universityId: number | null; admissionYear: number | null; startedAt: string }>;
+  imports: Array<{ importId: number; universityId: number; admissionYear: number; status: string; startedAt: string }>;
+}
+
+export interface RuleChangeEntry {
+  commit: string | null; changedAt: string; university: string; summary: string; reason: string | null;
+}
+
 export interface UniversityDataStatus {
   universityId: number;
   universityCode: string;

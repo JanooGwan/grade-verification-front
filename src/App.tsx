@@ -3,10 +3,12 @@ import RulesPage from '@/pages/rules/RulesPage';
 import StudentPage from '@/pages/student/StudentPage';
 import UniversityPage from '@/pages/university/UniversityPage';
 import OperationsPage from '@/pages/operation/OperationsPage';
+import ActiveJobsPage from '@/pages/operation/ActiveJobsPage';
+import RuleChangeHistoryPage from '@/pages/operation/RuleChangeHistoryPage';
 import AssistantPage from '@/pages/assistant/AssistantPage';
 import SavedVerificationPage from '@/pages/verification/SavedVerificationPage';
 
-type Page = 'rules' | 'students' | 'saved-verifications' | 'university' | 'operations' | 'assistant';
+type Page = 'rules' | 'students' | 'saved-verifications' | 'university' | 'operations' | 'active-jobs' | 'rule-history' | 'assistant';
 
 const navigation: Array<{ page: Page; path: string; label: string }> = [
   { page: 'rules', path: '/rules', label: '대학별 반영 기준' },
@@ -14,6 +16,8 @@ const navigation: Array<{ page: Page; path: string; label: string }> = [
   { page: 'saved-verifications', path: '/verification-results', label: '검증 결과' },
   { page: 'university', path: '/universities', label: '대학' },
   { page: 'operations', path: '/operations', label: '데이터 현황' },
+  { page: 'active-jobs', path: '/active-jobs', label: '진행 중인 작업' },
+  { page: 'rule-history', path: '/rule-history', label: '성적 로직 변경 이력' },
   { page: 'assistant', path: '/assistant', label: 'AI 도우미' },
 ];
 
@@ -79,6 +83,8 @@ export default function App() {
         {page === 'saved-verifications' && <SavedVerificationPage />}
         {page === 'university' && <UniversityPage />}
         {page === 'operations' && <OperationsPage />}
+        {page === 'active-jobs' && <ActiveJobsPage />}
+        {page === 'rule-history' && <RuleChangeHistoryPage />}
         {page === 'assistant' && <AssistantPage />}
       </div>
     </div>

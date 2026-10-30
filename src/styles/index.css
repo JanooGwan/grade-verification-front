@@ -1161,3 +1161,8 @@ h2 {
   .assistant-messages { padding: 19px 14px; }
   .assistant-message { max-width: 94%; }
 }
+.active-job { padding: 18px 0; border-bottom: 1px solid #e1e9e3; }
+.active-job h3 { margin: 0 0 8px; font-size: 1rem; }
+.active-job p { margin: 0 0 10px; color: #53675a; font-size: .85rem; }
+.active-job small { display: block; color: #65796b; margin-top: 8px; }
+.active-job > progress { width: min(100%, 420px); display: block; }

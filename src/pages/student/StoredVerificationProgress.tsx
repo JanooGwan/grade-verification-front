@@ -29,7 +29,7 @@ export default function StoredVerificationProgress({ job }: { job: StoredVerific
         전체 {total.toLocaleString()}명 · 결과 저장 처리 {saved.toLocaleString()}건
         {failed > 0 && ` · 미산출 ${failed.toLocaleString()}건`}
       </span>}
-      <small>저장 결과가 확정되면 완료로 표시됩니다.</small>
+      <small>저장 처리 건수 기준입니다. 미산출 건수와 최종 결과는 작업이 끝나야 확정됩니다.</small>
     </div>
   );
 }
