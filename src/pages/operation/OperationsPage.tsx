@@ -1,55 +1,48 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getOperationsDashboard } from '@/apis/operation';
-import { ApiError } from '@/apis/client';
+import { getLightDataStatus } from '@/apis/operation';
+import type { TranscriptImportStatus } from '@/apis/operation/entity';
 
-function errorMessage(error: unknown) {
-  if (error instanceof ApiError) return error.response?.message ?? error.message;
-  return error instanceof Error ? error.message : '운영 현황을 불러오지 못했습니다.';
+const statusLabels: Record<TranscriptImportStatus, string> = {
+  QUEUED: '대기 중', PROCESSING: '처리 중', COMPLETED: '완료',
+  COMPLETED_WITH_ERRORS: '일부 오류 완료', FAILED: '실패',
+};
+
+function time(value: string | null) {
+  return value ? new Date(value).toLocaleString('ko-KR') : '-';
 }
 
 export default function OperationsPage() {
-  const dashboard = useQuery({
-    queryKey: ['operations', 'dashboard'],
-    queryFn: getOperationsDashboard,
-    refetchInterval: 10_000,
-  });
-  const data = dashboard.data;
-  const errorRate = data?.http.totalRequests
-    ? ((data.http.errorRequests / data.http.totalRequests) * 100).toFixed(1) : '0.0';
-  return (
-    <main className="operations-page">
-      <header className="page-header">
-        <div className="brand-mark">OP</div>
-        <div><p className="eyebrow">Operations dashboard</p><h1>운영 현황</h1><p className="page-description">데이터 적재 현황과 API 요청·오류·응답시간을 10초마다 갱신합니다.</p></div>
-      </header>
-      {dashboard.error && <div className="error-banner">{errorMessage(dashboard.error)}</div>}
-      <section className="ops-metric-grid">
-        <Metric label="학생" value={data?.students} detail={`${data?.transcriptCourses ?? 0}개 과목`} />
-        <Metric label="지원" value={data?.studentApplications} detail={`${data?.verificationRuns ?? 0}회 검증`} />
-        <Metric label="모집요강" value={data?.ruleExtractions} detail={`${data?.rules.published ?? 0}개 게시 규칙`} />
-        <Metric label="API 요청" value={data?.http.totalRequests} detail={`오류율 ${errorRate}%`} accent />
-      </section>
-      <section className="ops-panels">
-        <article className="ops-panel">
-          <div className="ops-panel-heading"><div><p className="section-step">RULE STATUS</p><h2>규칙 상태</h2></div></div>
-          <div className="ops-rule-bars">
-            {data && Object.entries(data.rules).map(([status, count]) => <div key={status}><span>{status.toUpperCase()}</span><b>{count}</b></div>)}
-          </div>
-        </article>
-        <article className="ops-panel">
-          <div className="ops-panel-heading"><div><p className="section-step">HTTP HEALTH</p><h2>요청 성능</h2></div><span>기동 {data?.http.startedAt ? new Date(data.http.startedAt).toLocaleString() : '-'}</span></div>
-          <div className="ops-http-summary"><span>평균 <b>{data?.http.averageDurationMillis ?? 0}ms</b></span><span>최대 <b>{data?.http.maxDurationMillis ?? 0}ms</b></span><span>오류 <b>{data?.http.errorRequests ?? 0}</b></span></div>
-        </article>
-      </section>
-      <section className="ops-panel ops-endpoints">
-        <div className="ops-panel-heading"><div><p className="section-step">TOP ENDPOINTS</p><h2>API별 요청 현황</h2></div>{dashboard.isFetching && <span>갱신 중…</span>}</div>
-        <div className="ops-endpoint-row ops-endpoint-row--head"><span>API</span><span>요청</span><span>오류</span><span>평균 응답</span></div>
-        {data?.http.endpoints.map((endpoint) => <div className="ops-endpoint-row" key={endpoint.endpoint}><strong>{endpoint.endpoint}</strong><span>{endpoint.requests}</span><span>{endpoint.errors}</span><span>{endpoint.averageDurationMillis}ms</span></div>)}
-      </section>
-    </main>
-  );
-}
-
-function Metric({ label, value, detail, accent = false }: { label: string; value?: number; detail: string; accent?: boolean }) {
-  return <article className={`ops-metric ${accent ? 'is-accent' : ''}`}><span>{label}</span><strong>{value ?? 0}</strong><small>{detail}</small></article>;
+  const [year, setYear] = useState('ALL');
+  const query = useQuery({ queryKey: ['operations', 'data-status'], queryFn: getLightDataStatus, refetchInterval: 60_000 });
+  const rows = query.data ?? [];
+  const years = [...new Set(rows.flatMap((row) => row.admissionYear === null ? [] : [row.admissionYear]))].sort((a, b) => b - a);
+  const shown = year === 'ALL' ? rows : rows.filter((row) => row.admissionYear === Number(year));
+  return <main className="operations-page">
+    <header className="page-header"><div className="brand-mark">DB</div><div>
+      <h1>데이터 현황</h1><p className="page-description">대학과 모집연도별 저장 여부와 최근 처리 시각을 확인합니다.</p>
+    </div></header>
+    {query.isError && <div className="error-banner" role="alert">데이터 현황을 불러오지 못했습니다.</div>}
+    <section className="ops-panel ops-data-status">
+      <div className="ops-panel-heading ops-data-heading"><h2>대학별 저장 현황</h2><div className="ops-data-controls">
+        <label htmlFor="operations-admission-year">모집연도</label>
+        <select id="operations-admission-year" value={year} onChange={(event) => setYear(event.target.value)}>
+          <option value="ALL">전체</option>{years.map((value) => <option key={value} value={value}>{value}학년도</option>)}
+        </select>
+        <button type="button" onClick={() => query.refetch()} disabled={query.isFetching}>새로고침</button>
+      </div></div>
+      <div className="ops-data-table"><table><thead><tr>
+        <th>대학교</th><th>모집연도</th><th>학생 데이터</th><th>최근 저장 처리</th><th>저장된 일괄 점수</th>
+      </tr></thead><tbody>{shown.map((row) => <tr key={`${row.universityId}-${row.admissionYear ?? 'none'}`}>
+        <td className="ops-university-cell"><strong>{row.universityName}</strong><small>{row.universityCode}{row.active ? '' : ' · 비활성'}</small></td>
+        <td>{row.admissionYear ? `${row.admissionYear}학년도` : '-'}</td>
+        <td><span className={`ops-status-badge ${row.studentDataPresent ? 'is-ready' : 'is-empty'}`}>{row.studentDataPresent ? '있음' : '없음'}</span></td>
+        <td>{row.latestImportStatus ? statusLabels[row.latestImportStatus] : '이력 없음'}<small>{time(row.latestImportAt)}</small></td>
+        <td><span className={`ops-status-badge ${row.verificationDataPresent ? 'is-ready' : 'is-empty'}`}>{row.verificationDataPresent ? '있음' : '없음'}</span><small>{time(row.latestVerificationAt)}</small></td>
+      </tr>)}</tbody></table>
+      {query.isLoading && <div className="ops-data-empty">확인 중입니다.</div>}
+      {!query.isLoading && shown.length === 0 && <div className="ops-data-empty">해당 데이터가 없습니다.</div>}</div>
+      <p className="ops-data-note">검증 결과는 업로드에 연결된 일괄 검증 저장 결과 기준입니다. 개별 검증은 포함하지 않습니다. 1분마다 갱신합니다.</p>
+    </section>
+  </main>;
 }

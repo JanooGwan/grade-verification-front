@@ -17,7 +17,7 @@ export default function UniversityCard({ university, isDeleting, onDelete, onEdi
         </span>
       </div>
       <h3>{university.name}</h3>
-      <p>성적 검증 규칙과 모집 전형을 이 대학 단위로 관리합니다.</p>
+      <p>성적 반영 기준과 모집 전형을 이 대학 단위로 관리합니다.</p>
       <div className="card-actions">
         <button className="secondary-button" type="button" onClick={() => onEdit(university)}>
           수정

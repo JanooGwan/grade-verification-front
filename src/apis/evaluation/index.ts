@@ -23,8 +23,9 @@ export const publishEvaluationRule = (ruleId: number, request: EvaluationRuleAct
   apiClient.patch<EvaluationRule>(`/api/evaluations/rules/${ruleId}/publish`, request);
 export const retireEvaluationRule = (ruleId: number, request: EvaluationRuleActionRequest) =>
   apiClient.patch<EvaluationRule>(`/api/evaluations/rules/${ruleId}/retire`, request);
-export const verifyGrades = (ruleId: number, courses: CourseGrade[], graduated = false) =>
-  apiClient.post<GradeVerification>('/api/evaluations/verify', { ruleId, graduated, courses });
+export const verifyGrades = (ruleId: number, courses: CourseGrade[], graduated = false,
+  graduationYear: number | null = null) =>
+  apiClient.post<GradeVerification>('/api/evaluations/verify', { ruleId, graduated, graduationYear, courses });
 
 export const getRuleExtractions = () =>
   apiClient.get<RuleExtractionSummary[]>('/api/evaluations/rule-extractions');
