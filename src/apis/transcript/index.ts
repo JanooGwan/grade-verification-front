@@ -179,6 +179,14 @@ export const importMjcSourceExcel = (admissionYear: number, universityId: number
   return apiClient.postForm<SourceImportStartResult>('/api/transcripts/imports/source/mjc/excel', form);
 };
 
+export const importMjcSingleCsv = (admissionYear: number, universityId: number, file: File) => {
+  const form = new FormData();
+  form.append('admissionYear', String(admissionYear));
+  form.append('universityId', String(universityId));
+  form.append('file', file);
+  return apiClient.postForm<SourceImportStartResult>('/api/transcripts/imports/source/mjc/single-csv', form);
+};
+
 export const importMjcSourceZip = (admissionYear: number, universityId: number, file: File) => {
   const form = new FormData();
   form.append('admissionYear', String(admissionYear));

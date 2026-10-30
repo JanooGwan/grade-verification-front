@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@/apis/client', () => ({ apiClient: { postForm: vi.fn(), post: vi.fn(), get: vi.fn() } }));
 
 import { apiClient } from '@/apis/client';
-import { importMjcSourceExcel, importMjcSourceZip, runStoredTranscriptVerification } from './index';
+import { importMjcSingleCsv, importMjcSourceExcel, importMjcSourceZip, runStoredTranscriptVerification } from './index';
 
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.clearAllMocks(); });
 
@@ -32,6 +32,15 @@ describe('성적검증 진행 상태', () => {
 });
 
 describe('명지전문대 원자료 업로드', () => {
+  it('단일 CSV와 대학·학년도를 CSV 전용 API에 전달한다', () => {
+    const file = new File(['synthetic csv'], 'synthetic.csv', { type: 'text/csv' });
+    importMjcSingleCsv(2027, 1, file);
+    const [endpoint, form] = vi.mocked(apiClient.postForm).mock.calls.at(-1)!;
+    expect(endpoint).toBe('/api/transcripts/imports/source/mjc/single-csv');
+    expect(form.get('admissionYear')).toBe('2027');
+    expect(form.get('universityId')).toBe('1');
+    expect(form.get('file')).toBe(file);
+  });
   it('ZIP 파일과 대학·학년도를 ZIP 전용 API에 전달한다', () => {
     const file = new File(['synthetic archive'], 'synthetic.zip', { type: 'application/zip' });
     importMjcSourceZip(2027, 1, file);

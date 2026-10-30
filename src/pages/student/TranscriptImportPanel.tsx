@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { ApiError } from '@/apis/client';
-import { downloadPreparedSavedVerificationExport, downloadTranscriptImportResultExcel, importMjcSourceExcel, importMjcSourceZip, importSyuSourceExcel, importTranscriptExcel, prepareSavedVerificationExport } from '@/apis/transcript';
+import { downloadPreparedSavedVerificationExport, downloadTranscriptImportResultExcel, importMjcSingleCsv, importMjcSourceExcel, importMjcSourceZip, importSyuSourceExcel, importTranscriptExcel, prepareSavedVerificationExport } from '@/apis/transcript';
 import type { TranscriptImportHistory, TranscriptImportMode } from '@/apis/transcript/entity';
 import { transcriptQueries, transcriptQueryKeys } from '@/apis/transcript/queries';
 import { universityQueries } from '@/apis/university/queries';
@@ -63,7 +63,7 @@ function ExcelFilePicker({
           onChange={(event) => onChange(event.target.files?.[0] ?? null)}
         />
         <label className="transcript-file-button" htmlFor={id}>
-          {file ? '파일 변경' : accept.includes('.zip') ? 'ZIP / Excel 선택' : 'Excel 선택'}
+          {file ? '파일 변경' : accept.includes('.csv') ? 'CSV / ZIP / Excel 선택' : accept.includes('.zip') ? 'ZIP / Excel 선택' : 'Excel 선택'}
         </label>
         <span className="transcript-file-name" title={file?.name}>
           {file?.name ?? '선택된 파일 없음'}
@@ -160,7 +160,9 @@ export default function TranscriptImportPanel({
   });
   const sourceImporter = useMutation({
     mutationFn: () => isMjcSource
-      ? file?.name.toLowerCase().endsWith('.zip')
+      ? file?.name.toLowerCase().endsWith('.csv')
+        ? importMjcSingleCsv(admissionYear, universityId, file)
+        : file?.name.toLowerCase().endsWith('.zip')
         ? importMjcSourceZip(admissionYear, universityId, file)
         : importMjcSourceExcel(admissionYear, universityId, file as File)
       : importSyuSourceExcel(admissionYear, universityId, file as File),
@@ -241,8 +243,8 @@ export default function TranscriptImportPanel({
             id="transcript-file"
             label="성적 파일"
             file={file}
-            accept={isMjcSource ? '.zip,.xlsx' : '.xlsx,.xls'}
-            hint={isMjcSource ? '현재 원자료는 execution.csv·file-index.csv와 parts 폴더를 함께 일반 ZIP으로 압축해 선택하세요. 기존 통합 Excel도 사용할 수 있습니다. 최대 200MB.' : undefined}
+            accept={isMjcSource ? '.csv,.zip,.xlsx' : '.xlsx,.xls'}
+            hint={isMjcSource ? '변환 프로그램으로 만든 통합 CSV(최대 1GB), 원자료 ZIP 또는 기존 통합 Excel(각 최대 200MB)을 선택하세요.' : undefined}
             onChange={(selectedFile) => {
               setFile(selectedFile);
               verification.reset();
@@ -321,8 +323,8 @@ export default function TranscriptImportPanel({
 
       {isMjcSource && (
         <p className="warning">
-          암호화 ZIP은 먼저 해제한 뒤 일반 ZIP으로 다시 압축해 주세요. 모든 part를 한 번에 올리면
-          선택한 대학·학년도의 저장본을 교체합니다. 저장 완료 후 ‘성적 검증’을 누르면 됩니다.
+          통합 CSV에는 원본 학년도와 파일별 전체 건수 명세가 없으므로 선택한 학년도와 원본 전체 포함 여부를 확인해 주세요.
+          ZIP은 암호화 해제 후 일반 ZIP으로 올려주세요. 저장 완료 후 ‘성적 검증’을 누르면 됩니다.
         </p>
       )}
 
