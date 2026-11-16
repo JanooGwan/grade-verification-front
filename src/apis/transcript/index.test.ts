@@ -1,9 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@/apis/client', () => ({ apiClient: { postForm: vi.fn(), post: vi.fn(), get: vi.fn() } }));
+vi.mock('@/apis/client', () => ({
+  ApiError: class ApiError extends Error {
+    constructor(readonly status: number, message: string) { super(message); }
+  },
+  apiClient: { postForm: vi.fn(), post: vi.fn(), get: vi.fn() },
+}));
 
-import { apiClient } from '@/apis/client';
-import { getSavedVerificationResults, importMjcSingleCsv, importMjcSourceExcel, importMjcSourceZip, runStoredTranscriptVerification } from './index';
+import { ApiError, apiClient } from '@/apis/client';
+import { getSavedVerificationResults, importMjcSingleCsv, importMjcSourceExcel, importMjcSourceZip, prepareSavedVerificationExport, runStoredTranscriptVerification } from './index';
 
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.clearAllMocks(); });
 
@@ -37,6 +42,48 @@ describe('성적검증 진행 상태', () => {
     expect(onProgress).toHaveBeenLastCalledWith(completed);
     expect(apiClient.post).toHaveBeenCalledTimes(1);
     expect(apiClient.get).toHaveBeenLastCalledWith(expect.stringContaining('sourceImportId=41'));
+  });
+
+  it('작업 상태가 사라지면 저장 결과 확인을 안내하고 자동 재실행하지 않는다', async () => {
+    vi.useFakeTimers(); vi.stubGlobal('window', { setTimeout });
+    vi.mocked(apiClient.post).mockResolvedValue({ jobId: 'lost', status: 'PROCESSING' });
+    vi.mocked(apiClient.get).mockRejectedValue(new ApiError(404, '찾을 수 없습니다'));
+    const running=runStoredTranscriptVerification(1,2027);
+    const rejected=expect(running).rejects.toThrow('저장된 결과를 확인');
+    await vi.advanceTimersByTimeAsync(3000); await rejected;
+    expect(apiClient.post).toHaveBeenCalledTimes(1);
+    expect(apiClient.get).toHaveBeenCalledTimes(1);
+  });
+
+  it('인증 오류는 연결 실패로 바꾸지 않고 즉시 전달한다', async () => {
+    vi.useFakeTimers(); vi.stubGlobal('window', { setTimeout });
+    vi.mocked(apiClient.post).mockResolvedValue({ jobId: 'auth', status: 'PROCESSING' });
+    const failure=new ApiError(401,'인증이 필요합니다'); vi.mocked(apiClient.get).mockRejectedValue(failure);
+    const running=runStoredTranscriptVerification(1,2027);
+    const rejected=expect(running).rejects.toBe(failure);
+    await vi.advanceTimersByTimeAsync(3000); await rejected;
+    expect(apiClient.get).toHaveBeenCalledTimes(1);
+  });
+
+  it('일시적인 연결 실패 후 완료 상태를 다시 확인한다', async () => {
+    vi.useFakeTimers(); vi.stubGlobal('window', { setTimeout });
+    vi.mocked(apiClient.post).mockResolvedValue({jobId:'retry',status:'PROCESSING'});
+    vi.mocked(apiClient.get).mockRejectedValueOnce(new TypeError('network')).mockResolvedValueOnce({jobId:'retry',status:'COMPLETED',result:{sourceImportId:41}}).mockResolvedValueOnce({items:[]});
+    const running=runStoredTranscriptVerification(1,2027);
+    await vi.advanceTimersByTimeAsync(6000);
+    expect((await running).job.status).toBe('COMPLETED');
+    expect(apiClient.post).toHaveBeenCalledTimes(1);
+  });
+
+  it('Excel 생성 작업이 사라지면 다시 다운로드하도록 안내한다', async () => {
+    vi.useFakeTimers(); vi.stubGlobal('window', { setTimeout });
+    vi.mocked(apiClient.post).mockResolvedValue({exportId:'lost-export',status:'PROCESSING'});
+    vi.mocked(apiClient.get).mockRejectedValue(new ApiError(404,'찾을 수 없습니다'));
+    const running=prepareSavedVerificationExport(41);
+    const rejected=expect(running).rejects.toThrow('다시 다운로드');
+    await vi.advanceTimersByTimeAsync(2000); await rejected;
+    expect(apiClient.post).toHaveBeenCalledTimes(1);
+    expect(apiClient.get).toHaveBeenCalledTimes(1);
   });
 });
 

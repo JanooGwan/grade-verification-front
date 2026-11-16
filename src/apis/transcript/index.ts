@@ -1,4 +1,4 @@
-import { apiClient } from '@/apis/client';
+import { ApiError, apiClient } from '@/apis/client';
 import type { SavedVerificationBatch, SavedVerificationDetail, SavedVerificationExportJob, SavedVerificationPage, SourceImportStartResult, StoredVerificationJob, StoredVerificationPersistenceResult, StudentPage, StudentTranscript, TranscriptImportHistory, TranscriptImportMode, TranscriptImportResult, TranscriptPreview, TranscriptCourse, UpdateStudentCommonDataRequest, UpdateStudentRequest, UpsertTranscriptCourseRequest } from './entity';
 
 export interface StudentSearchParams {
@@ -60,6 +60,10 @@ export const runStoredTranscriptVerification = async (
       job = await getStoredTranscriptVerificationJob(job.jobId);
       consecutiveConnectionFailures = 0;
     } catch (error) {
+      if (error instanceof ApiError && error.status === 404) {
+        throw new Error('성적 검증 작업 상태를 찾을 수 없습니다. 서버가 재시작되었을 수 있으니 저장된 결과를 확인한 뒤 필요하면 다시 실행해 주세요.', { cause: error });
+      }
+      if (error instanceof ApiError && error.status >= 400 && error.status < 500 && error.status !== 408 && error.status !== 429) throw error;
       consecutiveConnectionFailures += 1;
       if (consecutiveConnectionFailures < 5) continue;
       throw new Error('서버 연결이 반복해서 끊겼습니다. 백엔드 실행 상태를 확인한 뒤 다시 시도해 주세요.', {
@@ -122,6 +126,10 @@ export const prepareSavedVerificationExport = async (sourceImportId: number) => 
       job = await getSavedVerificationExport(job.exportId);
       consecutiveConnectionFailures = 0;
     } catch (error) {
+      if (error instanceof ApiError && error.status === 404) {
+        throw new Error('Excel 생성 작업 상태를 찾을 수 없습니다. 서버가 재시작되었을 수 있으니 다시 다운로드해 주세요.', { cause: error });
+      }
+      if (error instanceof ApiError && error.status >= 400 && error.status < 500 && error.status !== 408 && error.status !== 429) throw error;
       consecutiveConnectionFailures += 1;
       if (consecutiveConnectionFailures < 5) continue;
       throw new Error('서버 연결이 반복해서 끊겼습니다. 백엔드 실행 상태를 확인한 뒤 다시 시도해 주세요.', {
