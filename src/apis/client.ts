@@ -73,7 +73,10 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
 }
 
 async function requestForm<T>(endpoint: string, formData: FormData): Promise<T> {
-  const response = await fetch(joinUrl(BASE_URL, endpoint), { method: 'POST', body: formData });
+  const response = await fetch(joinUrl(BASE_URL, endpoint), {
+    method: 'POST',
+    body: formData,
+  });
   if (!response.ok) {
     const errorResponse = await parseErrorResponse(response);
     throw new ApiError(response.status, errorResponse?.message ?? 'API 요청에 실패했습니다.', errorResponse);
@@ -81,11 +84,46 @@ async function requestForm<T>(endpoint: string, formData: FormData): Promise<T> 
   return (await response.json()) as T;
 }
 
+async function requestFormBlob(endpoint: string, formData: FormData): Promise<Blob> {
+  const response = await fetch(joinUrl(BASE_URL, endpoint), {
+    method: 'POST',
+    body: formData,
+  });
+  if (!response.ok) {
+    const errorResponse = await parseErrorResponse(response);
+    throw new ApiError(response.status, errorResponse?.message ?? '파일 다운로드에 실패했습니다.', errorResponse);
+  }
+  return response.blob();
+}
+
+async function requestBlob(endpoint: string): Promise<Blob> {
+  const response = await fetch(joinUrl(BASE_URL, endpoint), {
+    method: 'GET',
+  });
+  if (!response.ok) {
+    const errorResponse = await parseErrorResponse(response);
+    throw new ApiError(response.status, errorResponse?.message ?? '파일 다운로드에 실패했습니다.', errorResponse);
+  }
+  return response.blob();
+}
+
+function downloadFile(endpoint: string, fileName: string) {
+  const link = document.createElement('a');
+  link.href = joinUrl(BASE_URL, endpoint);
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
 export const apiClient = {
   get: <T>(endpoint: string) => request<T>(endpoint, { method: 'GET' }),
+  getBlob: (endpoint: string) => requestBlob(endpoint),
   post: <T>(endpoint: string, body: unknown) => request<T>(endpoint, { method: 'POST', body }),
   postForm: <T>(endpoint: string, formData: FormData) => requestForm<T>(endpoint, formData),
+  postFormBlob: (endpoint: string, formData: FormData) => requestFormBlob(endpoint, formData),
   put: <T>(endpoint: string, body: unknown) => request<T>(endpoint, { method: 'PUT', body }),
   patch: <T>(endpoint: string, body: unknown) => request<T>(endpoint, { method: 'PATCH', body }),
   delete: (endpoint: string) => request<void>(endpoint, { method: 'DELETE' }),
+  download: (endpoint: string, fileName: string) => downloadFile(endpoint, fileName),
 };

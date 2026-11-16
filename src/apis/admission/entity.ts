@@ -1,4 +1,5 @@
 import type { GradeVerification } from '@/apis/evaluation/entity';
+import type { EducationBackground } from '@/apis/transcript/entity';
 
 export interface RecruitmentUnit {
   id: number;
@@ -58,6 +59,52 @@ export interface ApplicationVerification {
   createdAt: string;
   application: StudentApplication;
   verification: GradeVerification;
+}
+
+export type ApplicationScoreStatus = 'COMPLETE' | 'QUALITATIVE_PENDING' | 'INELIGIBLE';
+
+export interface CalculateApplicationScoreRequest {
+  essayScore: number | null;
+  practicalScore: number | null;
+  bonusScore: number | null;
+}
+
+export interface ScoreCalculationStep {
+  key: string;
+  description: string;
+  formula: string;
+  operands: Record<string, number>;
+  result: number;
+}
+
+export interface ApplicationScore {
+  scoreRunId: number;
+  createdAt: string;
+  applicationId: number;
+  ruleId: number;
+  ruleVersion: number;
+  universityName: string;
+  admissionYear: number;
+  admissionTrackName: string;
+  recruitmentUnitName: string;
+  educationBackground: EducationBackground;
+  status: ApplicationScoreStatus;
+  academicBaseScore: number;
+  academicScore: number;
+  equivalentAbsenceDays: number | null;
+  attendanceScore: number | null;
+  additionalScore: number | null;
+  schoolViolenceDeduction: number;
+  quantitativeSubtotal: number;
+  scoreAfterDeduction: number;
+  finalScore: number | null;
+  maximumQuantitativeScore: number;
+  maximumTotalScore: number;
+  pendingComponents: string[];
+  ineligibilityReasons: string[];
+  warnings: string[];
+  calculationSteps: ScoreCalculationStep[];
+  gradeVerification: GradeVerification | null;
 }
 
 export interface VerificationHistory {

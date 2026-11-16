@@ -4,9 +4,9 @@ import { getStudents, getStudentTranscript, getTranscriptImports, type StudentSe
 export const transcriptQueryKeys = {
   all: ['transcripts'] as const,
   students: (params: StudentSearchParams) => [...transcriptQueryKeys.all, 'students', params] as const,
-  detail: (admissionYear: number, applicantNumber: string) =>
-    [...transcriptQueryKeys.all, 'student', admissionYear, applicantNumber] as const,
-  imports: () => [...transcriptQueryKeys.all, 'imports'] as const,
+  detail: (universityId: number, admissionYear: number, applicantNumber: string) =>
+    [...transcriptQueryKeys.all, 'student', universityId, admissionYear, applicantNumber] as const,
+  imports: (universityId: number) => [...transcriptQueryKeys.all, 'imports', universityId] as const,
 };
 
 export const transcriptQueries = {
@@ -14,10 +14,14 @@ export const transcriptQueries = {
     queryKey: transcriptQueryKeys.students(params),
     queryFn: () => getStudents(params),
   }),
-  detail: (admissionYear: number, applicantNumber: string) => queryOptions({
-    queryKey: transcriptQueryKeys.detail(admissionYear, applicantNumber),
-    queryFn: () => getStudentTranscript(admissionYear, applicantNumber),
-    enabled: Boolean(applicantNumber),
+  detail: (universityId: number, admissionYear: number, applicantNumber: string) => queryOptions({
+    queryKey: transcriptQueryKeys.detail(universityId, admissionYear, applicantNumber),
+    queryFn: () => getStudentTranscript(universityId, admissionYear, applicantNumber),
+    enabled: Boolean(universityId && applicantNumber),
   }),
-  imports: () => queryOptions({ queryKey: transcriptQueryKeys.imports(), queryFn: getTranscriptImports }),
+  imports: (universityId: number) => queryOptions({
+    queryKey: transcriptQueryKeys.imports(universityId),
+    queryFn: () => getTranscriptImports(universityId),
+    enabled: universityId > 0,
+  }),
 };
