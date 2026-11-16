@@ -3,9 +3,18 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@/apis/client', () => ({ apiClient: { postForm: vi.fn(), post: vi.fn(), get: vi.fn() } }));
 
 import { apiClient } from '@/apis/client';
-import { importMjcSingleCsv, importMjcSourceExcel, importMjcSourceZip, runStoredTranscriptVerification } from './index';
+import { getSavedVerificationResults, importMjcSingleCsv, importMjcSourceExcel, importMjcSourceZip, runStoredTranscriptVerification } from './index';
 
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.clearAllMocks(); });
+
+it('requests the review filter only when explicitly selected', () => {
+  getSavedVerificationResults(41, '', 0);
+  expect(vi.mocked(apiClient.get).mock.calls.at(-1)![0]).not.toContain('reviewOnly');
+  getSavedVerificationResults(41, '합성', 1, 50, true);
+  const url=vi.mocked(apiClient.get).mock.calls.at(-1)![0];
+  expect(url).toContain('reviewOnly=true');
+  expect(url).toContain('page=1');
+});
 
 describe('성적검증 진행 상태', () => {
   it('저장 처리 중 상태를 전달하고 완료 후에만 결과를 조회한다', async () => {

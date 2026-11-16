@@ -215,6 +215,7 @@ export interface SavedVerificationResultRow {
   includedCourseCount: number;
   excludedCourseCount: number;
   savedAt: string;
+  requiresReview?: boolean;
 }
 
 export interface SavedVerificationPage {
@@ -225,6 +226,7 @@ export interface SavedVerificationPage {
   totalPages: number;
   first: boolean;
   last: boolean;
+  reviewFilterApplied?: boolean;
 }
 
 export interface SavedVerificationDetail {

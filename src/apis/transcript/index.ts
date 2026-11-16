@@ -88,6 +88,7 @@ export const getSavedVerificationResults = (
   keyword: string,
   page: number,
   size = 50,
+  reviewOnly = false,
 ) => {
   const params = new URLSearchParams({
     sourceImportId: String(sourceImportId),
@@ -95,6 +96,7 @@ export const getSavedVerificationResults = (
     size: String(size),
   });
   if (keyword.trim()) params.set('keyword', keyword.trim());
+  if (reviewOnly) params.set('reviewOnly', 'true');
   return apiClient.get<SavedVerificationPage>(`/api/transcripts/saved-verifications?${params.toString()}`);
 };
 

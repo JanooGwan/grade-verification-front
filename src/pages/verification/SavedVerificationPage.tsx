@@ -12,6 +12,8 @@ import {
 import type { SavedVerificationBatch } from '@/apis/transcript/entity';
 import { universityQueries } from '@/apis/university/queries';
 import VerificationDetail from '@/components/VerificationDetail';
+import ReviewFilterNotice from './ReviewFilterNotice';
+import './review-filter.css';
 
 const SELECTED_UNIVERSITY_STORAGE_KEY = 'student-transcript-selected-university-id';
 
@@ -47,6 +49,7 @@ export default function SavedVerificationPage() {
   const [keywordInput, setKeywordInput] = useState('');
   const [keyword, setKeyword] = useState('');
   const [page, setPage] = useState(0);
+  const [reviewOnly, setReviewOnly] = useState(false);
   const [verificationRunId, setVerificationRunId] = useState(0);
   const universities = useQuery(universityQueries.list());
   const batches = useQuery({
@@ -59,8 +62,8 @@ export default function SavedVerificationPage() {
     : batches.data?.[0]?.sourceImportId ?? 0;
   const selectedBatch = batches.data?.find((batch) => batch.sourceImportId === effectiveSourceImportId);
   const results = useQuery({
-    queryKey: ['saved-verifications', 'results', effectiveSourceImportId, keyword, page],
-    queryFn: () => getSavedVerificationResults(effectiveSourceImportId, keyword, page),
+    queryKey: ['saved-verifications', 'results', effectiveSourceImportId, keyword, page, reviewOnly],
+    queryFn: () => getSavedVerificationResults(effectiveSourceImportId, keyword, page, 50, reviewOnly),
     enabled: effectiveSourceImportId > 0,
   });
   const detail = useQuery({
@@ -81,6 +84,7 @@ export default function SavedVerificationPage() {
     setKeywordInput('');
     setKeyword('');
     setPage(0);
+    setReviewOnly(false);
     exporter.reset();
   };
 
@@ -221,6 +225,15 @@ export default function SavedVerificationPage() {
             </div>
           </div>
 
+          <label className="saved-verification-review-filter">
+            <input type="checkbox" checked={reviewOnly} onChange={(event) => {
+              setReviewOnly(event.target.checked);
+              setPage(0);
+              setVerificationRunId(0);
+            }} /> 동점 검토가 필요한 결과만 보기
+          </label>
+          <ReviewFilterNotice enabled={reviewOnly} applied={results.data ? results.data.reviewFilterApplied === true : undefined} />
+
           <div className="saved-verification-table">
             <table>
               <thead>
@@ -237,7 +250,7 @@ export default function SavedVerificationPage() {
               <tbody>
                 {results.data?.content.map((result) => (
                   <tr key={result.verificationRunId} className={verificationRunId === result.verificationRunId ? 'is-selected' : ''}>
-                    <td><strong>{result.applicantNumber}</strong><small>{result.studentName}</small></td>
+                    <td><strong>{result.applicantNumber}</strong><small>{result.studentName}</small>{result.requiresReview && <small className="saved-verification-review-flag">동점 검토 필요</small>}</td>
                     <td><span>{result.admissionTrackName}</span><small>{result.ruleName} v{result.ruleVersion}</small></td>
                     <td>{result.recruitmentUnitName}</td>
                     <td>{result.includedCourseCount.toLocaleString()} / {result.excludedCourseCount.toLocaleString()}</td>
